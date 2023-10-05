@@ -33,14 +33,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-_counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
 
@@ -60,8 +52,13 @@ _counter++;
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                   FloatingActionButton.extended(
-                    onPressed: _incrementCounter,
-                    extendedPadding: EdgeInsets.all(10),
+                    heroTag: "settings",
+                    onPressed: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder:(context) =>const Settings()),
+                  );
+              },
                     
                     tooltip: 'opens settings',
                     label: const Icon(Icons.settings),
@@ -75,8 +72,13 @@ _counter++;
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 FloatingActionButton.extended(
-                  onPressed: _incrementCounter,
-                  extendedPadding: EdgeInsets.all(10),
+                  heroTag: "yourList",
+                  onPressed: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder:(context) =>const YourList()),
+                  );
+              },
                   
                   tooltip: 'opens your list',
                   label: const Text("Your list"),
@@ -84,20 +86,46 @@ _counter++;
               ]
             ),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  margin: EdgeInsets.all(10),
+                )
+              ],
+            ),
+            Row(
               
               mainAxisAlignment: MainAxisAlignment.center,
               
               children: <Widget>[
                 FloatingActionButton.extended(
-                  onPressed: _incrementCounter,
+                  heroTag: "selfcare",
+                  onPressed: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder:(context) =>const SelfCareList()),
+                  );
+              }, 
                   tooltip: 'opens self care list',
                   label: const Text("Self Care"),
                 ),
               ]
             ),
-            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  margin: EdgeInsets.all(10),
+                )
+              ],
+            ),
             FloatingActionButton(
-              onPressed: _incrementCounter,
+              onPressed: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder:(context) =>const NewList()),
+                  );
+              },
               tooltip: 'opens make new list screen',
               child: const Icon(Icons.add),
             ),
@@ -111,3 +139,54 @@ _counter++;
     );
   }
 }
+
+class YourList extends StatelessWidget{
+  const YourList({super.key});
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Your list"),
+      ),
+      body: Center(),
+    );
+  }
+}
+class SelfCareList extends StatelessWidget{
+  const SelfCareList({super.key});
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Self Care Tasks"),
+      ),
+      body: Center(),
+    );
+  }
+}
+class Settings extends StatelessWidget{
+  const Settings({super.key});
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Settings"),
+      ),
+      body: Center(),
+    );
+  }
+}
+
+class NewList extends StatelessWidget{
+  const NewList({super.key});
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Make a new List"),
+      ),
+      body: Center(),
+    );
+  }
+}
+
