@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -11,13 +11,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Home',
       theme: ThemeData(
 
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffCA9CE1)),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Home'),
     );
   }
 }
@@ -54,23 +54,60 @@ _counter++;
 
         child: Column(
 
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                  FloatingActionButton.extended(
+                    onPressed: _incrementCounter,
+                    extendedPadding: EdgeInsets.all(10),
+                    
+                    tooltip: 'opens settings',
+                    label: const Icon(Icons.settings),
+                  ),
+                ],
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                FloatingActionButton.extended(
+                  onPressed: _incrementCounter,
+                  extendedPadding: EdgeInsets.all(10),
+                  
+                  tooltip: 'opens your list',
+                  label: const Text("Your list"),
+                ),
+              ]
             ),
+            Row(
+              
+              mainAxisAlignment: MainAxisAlignment.center,
+              
+              children: <Widget>[
+                FloatingActionButton.extended(
+                  onPressed: _incrementCounter,
+                  tooltip: 'opens self care list',
+                  label: const Text("Self Care"),
+                ),
+              ]
+            ),
+            
+            FloatingActionButton(
+              onPressed: _incrementCounter,
+              tooltip: 'opens make new list screen',
+              child: const Icon(Icons.add),
+            ),
+              ],
+            ),
+            
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+      
     );
   }
 }
