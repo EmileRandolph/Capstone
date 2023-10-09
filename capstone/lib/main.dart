@@ -1,33 +1,53 @@
+
+import 'package:capstone/list_item.dart';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
 }
+var font = 'OpenDyslexic';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
+@override
+State<MyApp> createState()=> _MyApp();
+}
+class _MyApp extends State<MyApp>{
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Home',
       theme: ThemeData(
-
+        fontFamily: font,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffCA9CE1)),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Home'),
     );
-  }
+    /*void changefont(){
+      setState((){
+        MaterialApp(
+      title: 'Home',
+      theme: ThemeData(
+        fontFamily: font,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffCA9CE1)),
+        useMaterial3: true,
+      ),
+      home: const MyHomePage(title: 'Home'),
+      );});
+    }
+    */
 }
+  }
+
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
 
   final String title;
-
+  
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -56,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: (){
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) =>const Settings()),
+                  MaterialPageRoute(builder:(context) => Settings()),
                   );
               },
                     
@@ -71,17 +91,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                FloatingActionButton.extended(
-                  heroTag: "yourList",
+                ElevatedButton(
+                  style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
+                  child: Text("Your list"),
                   onPressed: (){
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) =>const YourList()),
+                  MaterialPageRoute(builder:(context) => YourList()),
                   );
               },
-                  
-                  tooltip: 'opens your list',
-                  label: const Text("Your list"),
+
                 ),
               ]
             ),
@@ -98,16 +117,15 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               
               children: <Widget>[
-                FloatingActionButton.extended(
-                  heroTag: "selfcare",
+                ElevatedButton(
+                  style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
+                  child: const Text("Self Care"),
                   onPressed: (){
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) =>const SelfCareList()),
+                  MaterialPageRoute(builder:(context) => SelfCareList()),
                   );
               }, 
-                  tooltip: 'opens self care list',
-                  label: const Text("Self Care"),
                 ),
               ]
             ),
@@ -141,39 +159,194 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class YourList extends StatelessWidget{
-  const YourList({super.key});
+  
+  YourList({super.key});
+  final yourlist = [listItem('title', 5)];
   @override
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your list"),
+        
       ),
-      body: Center(),
+      body: Center(
+        child: ListView.builder(
+          itemCount: yourlist?.length,
+          itemBuilder: (context, index){
+            return Container(
+              child:
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children:[
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        child: Text(
+                      yourlist![index].title,
+                      style: TextStyle(
+                        fontSize: 24,
+                      ),
+                      
+                    ), 
+                    ),
+                    
+                    FloatingActionButton(onPressed: (){
+
+                    },
+                    child: const Icon(Icons.edit),
+                    )
+                    ]
+                  )
+                  
+
+                ],
+                )
+            );
+          },
+        ),
+      ),
     );
   }
 }
+
 class SelfCareList extends StatelessWidget{
-  const SelfCareList({super.key});
+
+final selfcarelist = [listItem('title', 5)];
+//List<listItem> readFile(){
+
+//}
+
+  SelfCareList({super.key});
   @override
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
         title: const Text("Self Care Tasks"),
       ),
-      body: Center(),
+      body: Center(
+        child: ListView.builder(
+          itemCount: selfcarelist?.length,
+          itemBuilder: (context, index){
+            return Container(
+              child:
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children:[
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        child: Text(
+                      selfcarelist![index].title,
+                      style: TextStyle(
+                        fontSize: 24,
+                      ),
+                      
+                    ), 
+                    ),
+                    
+                    FloatingActionButton(onPressed: (){
+
+                    },
+                    child: const Icon(Icons.edit),
+                    )
+                    ]
+                  )
+                  
+
+                ],
+                )
+            );
+          },
+        ),
+      ),
     );
   }
 }
-class Settings extends StatelessWidget{
-  const Settings({super.key});
+bool healMonster = false;
+bool openDylexicfont = false;
+bool halloween = false;
+bool dark = false;
+class Settings extends StatefulWidget{
+  State<Settings> createState()=> _stateSettings();
+}
+class _stateSettings extends State<Settings>{
   @override
   Widget build(BuildContext context){
+    
+    
+
+    void onChanged(bool boolean){};
     return Scaffold(
       appBar: AppBar(
         title: const Text("Settings"),
       ),
-      body: Center(),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Switch(value: healMonster, onChanged: (bool boolean){
+                if(boolean){}
+                else{}
+                setState(() {
+                  healMonster = boolean;
+                });
+              }),
+              const Text(
+                "Heal Monster",
+                
+                )
+            ],
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Switch(value: openDylexicfont, 
+              onChanged: (bool boolean){
+                if(boolean){
+                font = 'OpenDyslexic';
+                }else {font = 'Ariel';
+                }
+                //_MyApp _myApp = new _MyApp();
+                //_myApp.build(context);
+                setState((){
+                  openDylexicfont = boolean;
+                });
+              }),
+              const Text("OpenDyslexic font")
+            ],
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Switch(value: halloween, onChanged: (bool boolean){
+                if(boolean){}
+                else{}
+                setState(() {
+                  halloween = boolean;
+                });
+              }),
+              const Text("Halloween mode")
+            ],
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Switch(value: dark, onChanged: (bool boolean){
+                if(boolean){}
+                else{}
+                setState(() {
+                  dark = boolean;
+                });
+                }),
+              const Text("Dark mode")
+            ],
+            ),
+          ],
+          ),
+      ),
     );
+    
   }
 }
 

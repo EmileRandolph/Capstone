@@ -88,3 +88,15 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+  fonts:
+    - family: OpenDyslexic
+      fonts:
+        - asset: fonts/OpenDyslexic-Regular.otf
+        - asset: fonts/OpenDyslexic-Italic.otf
+          style: italic
+        - asset: fonts/OpenDyslexic-Bold.otf
+        - asset: fonts/OpenDyslexic-BoldItalic.otf
+          style: italic
+    
+
