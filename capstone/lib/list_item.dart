@@ -7,6 +7,22 @@ var weight;
     this.weight = weight;
   }
 
+  listItem.withDescription(String title, String description, int weight){
+    this.title = title;
+    this.description = description;
+    this.weight = weight;
+  }
+
+  Map toJson()=>{
+    'title':title,
+    'description': description,
+    'weight':weight
+  };
+
+  factory listItem.fromJson(dynamic json) {
+    return listItem.withDescription(json['title'] as String, json['description'] as String, json['weight'] as int);
+  }
+
   void setDescription(String description){
     this.description = description;
   }

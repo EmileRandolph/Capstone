@@ -1,9 +1,32 @@
 
+import 'dart:math';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:capstone/list_item.dart';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
+}
+int rollDice( int largestNum){
+  return Random().nextInt(largestNum);
+}
+_writeFile(String text, String filename) async {
+  final Directory directory = await getApplicationDocumentsDirectory();
+  final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\${filename}');
+  await file.writeAsString(text);
+}
+
+Future<String> _readFile(String filename) async {
+  String text ="";
+  try {
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\${filename}');
+    text = await file.readAsString();
+  } catch (e) {
+    print("Couldn't read file");
+  }
+  return text;
 }
 var font = 'OpenDyslexic';
 
@@ -162,6 +185,7 @@ class YourList extends StatelessWidget{
   
   YourList({super.key});
   final yourlist = [listItem('title', 5)];
+  
   @override
   Widget build(BuildContext context){
     return Scaffold(
@@ -170,7 +194,10 @@ class YourList extends StatelessWidget{
         
       ),
       body: Center(
-        child: ListView.builder(
+        child:Column(
+          children: [
+            Expanded(child:
+            ListView.builder(
           itemCount: yourlist?.length,
           itemBuilder: (context, index){
             return Container(
@@ -197,26 +224,50 @@ class YourList extends StatelessWidget{
                     child: const Icon(Icons.edit),
                     )
                     ]
-                  )
+                  ),
                   
 
                 ],
                 )
             );
           },
+        ), 
         ),
+        Container(
+          padding: EdgeInsets.all(10),
+          child:
+          FloatingActionButton(onPressed: (){
+            String yourlistjson = "";
+            for (int i =0; i < yourlist.length; i++){
+              yourlistjson += yourlist[i].toJson().toString()+",";
+            }
+            _writeFile(yourlistjson, 'yourlist.txt');
+            
+          },
+          heroTag: "addItem",
+            child: const Icon(Icons.add),
+          ) ,
+        )
+          
+        
+        ],) 
+        
       ),
     );
+
   }
 }
 
 class SelfCareList extends StatelessWidget{
 
-final selfcarelist = [listItem('title', 5)];
+final selfcarelist = [listItem('title', 5), listItem("2", 5)];
 //List<listItem> readFile(){
 
 //}
-
+    void addItem(String title, String description, int weight){
+      selfcarelist.add(listItem.withDescription(title, description, weight));
+    }
+    
   SelfCareList({super.key});
   @override
   Widget build(BuildContext context){
@@ -225,7 +276,10 @@ final selfcarelist = [listItem('title', 5)];
         title: const Text("Self Care Tasks"),
       ),
       body: Center(
-        child: ListView.builder(
+        child:Column(
+          children: [
+            Expanded(child:
+            ListView.builder(
           itemCount: selfcarelist?.length,
           itemBuilder: (context, index){
             return Container(
@@ -252,14 +306,27 @@ final selfcarelist = [listItem('title', 5)];
                     child: const Icon(Icons.edit),
                     )
                     ]
-                  )
+                  ),
                   
 
                 ],
                 )
             );
           },
+        ), 
         ),
+        Container(
+          padding: EdgeInsets.all(10),
+          child:
+          FloatingActionButton(onPressed: (){
+          },
+            child: const Icon(Icons.add),
+          ) ,
+        )
+          
+        
+        ],) 
+        
       ),
     );
   }
