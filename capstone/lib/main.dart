@@ -1,4 +1,5 @@
 
+import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 void main() {
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
 }
+var isLoaded = false;
 int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
@@ -17,7 +19,7 @@ _writeFile(String text, String filename) async {
   await file.writeAsString(text);
 }
 
-Future<String> _readFile(String filename) async {
+Future<List<listItem>> _readFile(String filename,String listname) async {
   String text ="";
   try {
     final Directory directory = await getApplicationDocumentsDirectory();
@@ -26,7 +28,13 @@ Future<String> _readFile(String filename) async {
   } catch (e) {
     print("Couldn't read file");
   }
-  return text;
+  List<listItem> items;
+  if(text != ""){
+  var decoded = jsonDecode(text)['${listname}'] as List;
+  items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
+  isLoaded=true;
+  }
+  return items;
 }
 var font = 'OpenDyslexic';
 
@@ -184,8 +192,11 @@ class _MyHomePageState extends State<MyHomePage> {
 class YourList extends StatelessWidget{
   
   YourList({super.key});
-  final yourlist = [listItem('title', 5)];
-  
+  List<listItem>? yourlist;
+  getData() async{
+    yourlist = await _readFile("yourlist.txt", "yourlist");
+  }
+
   @override
   Widget build(BuildContext context){
     return Scaffold(
@@ -193,7 +204,11 @@ class YourList extends StatelessWidget{
         title: const Text("Your list"),
         
       ),
-      body: Center(
+      body: Visibility(
+        visible: isLoaded,
+        replacement: const Center(
+          child: CircularProgressIndicator(),
+        ),
         child:Column(
           children: [
             Expanded(child:
@@ -238,8 +253,8 @@ class YourList extends StatelessWidget{
           child:
           FloatingActionButton(onPressed: (){
             String yourlistjson = "";
-            for (int i =0; i < yourlist.length; i++){
-              yourlistjson += yourlist[i].toJson().toString()+",";
+            for (int i =0; i < yourlist!.length; i++){
+              yourlistjson += yourlist![i].toJson().toString()+",";
             }
             _writeFile(yourlistjson, 'yourlist.txt');
             
