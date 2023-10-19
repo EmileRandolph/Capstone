@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:capstone/list_item.dart';
 import 'package:flutter/material.dart';
 
@@ -14,28 +13,11 @@ int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
 _writeFile(String text, String filename) async {
-  final Directory directory = await getApplicationDocumentsDirectory();
   final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\${filename}');
   await file.writeAsString(text);
 }
 
-Future<List<listItem>> _readFile(String filename,String listname) async {
-  String text ="";
-  try {
-    final Directory directory = await getApplicationDocumentsDirectory();
-    final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\${filename}');
-    text = await file.readAsString();
-  } catch (e) {
-    print("Couldn't read file");
-  }
-  List<listItem> items;
-  if(text != ""){
-  var decoded = jsonDecode(text)['${listname}'] as List;
-  items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
-  isLoaded=true;
-  }
-  return items;
-}
+
 var font = 'OpenDyslexic';
 
 class MyApp extends StatefulWidget {
@@ -107,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: (){
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => Settings()),
+                  MaterialPageRoute(builder:(context) => const Settings()),
                   );
               },
                     
@@ -124,11 +106,12 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 ElevatedButton(
                   style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
-                  child: Text("Your list"),
+                  child: const Text("Your list"),
                   onPressed: (){
+                    isLoaded=false;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => YourList()),
+                  MaterialPageRoute(builder:(context) => const YourList()),
                   );
               },
 
@@ -139,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  margin: EdgeInsets.all(10),
+                  margin: const EdgeInsets.all(10),
                 )
               ],
             ),
@@ -164,7 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  margin: EdgeInsets.all(10),
+                  margin: const EdgeInsets.all(10),
                 )
               ],
             ),
@@ -188,15 +171,213 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
-class YourList extends StatelessWidget{
-  
-  YourList({super.key});
+  Future<List<listItem>> _readFile(String filename,String listname) async {
+  String text ="";
+  try {
+    final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\yourlist.txt');
+    text = await file.readAsString();
+  } catch (e) {
+    print("Couldn't read file");
+    print(e);
+  }
+  if(text != ""){
+  var decoded = jsonDecode(text)[listname] as List;
+  List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
+  return items;
+  }
+  return <listItem> [listItem('null', 0)];
+}
+class YourList extends StatefulWidget{
+@override
+  State<YourList> createState()=> _stateYourList();
+  const YourList({super.key});
+}
+class _stateYourList extends State<YourList>{
   List<listItem>? yourlist;
+
   getData() async{
     yourlist = await _readFile("yourlist.txt", "yourlist");
+setState(() {
+    isLoaded=true;
+  });
   }
 
+  @override
+  void initState(){
+    super.initState();
+    getData();
+  }
+
+  showEditScreen(String title, String description, int weight) {
+  showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(
+                20.0,
+              ),
+            ),
+          ),
+          contentPadding: EdgeInsets.only(
+            top: 10.0,
+          ),
+          title: Text(
+            "Edit "+title,
+            style: TextStyle(fontSize: 24.0),
+          ),
+          content: Container(
+            height: 400,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "Name of quest",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter Name here ex: ' + title,
+                          labelText: 'Name'),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "Description of quest",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter description here ex: '+description,
+                          labelText: 'Description'),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "Weight of quest",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter weight here ex: '+weight.toString(),
+                          labelText: 'Weight'),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    height: 60,
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        primary: Theme.of(context).colorScheme.primary,
+                        // fixedSize: Size(250, 50),
+                      ),
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary
+                          ),
+                        "Submit",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      });
+}
+  showRemoveScreen() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(
+                20.0,
+              ),
+            ),
+          ),
+          contentPadding: EdgeInsets.only(
+            top: 10.0,
+          ),
+          title: Text(
+            "Edit ",
+            style: TextStyle(fontSize: 24.0),
+          ),
+          content: Container(
+            height: 400,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "Name of quest",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter Name here ',
+                          labelText: 'Name'),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    height: 60,
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        primary: Theme.of(context).colorScheme.primary,
+                        // fixedSize: Size(250, 50),
+                      ),
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary
+                          ),
+                        "Submit",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      });
+  }
   @override
   Widget build(BuildContext context){
     return Scaffold(
@@ -223,10 +404,10 @@ class YourList extends StatelessWidget{
                   Row(
                     children:[
                       Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         child: Text(
                       yourlist![index].title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                       ),
                       
@@ -234,7 +415,7 @@ class YourList extends StatelessWidget{
                     ),
                     
                     FloatingActionButton(onPressed: (){
-
+                      showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
                     },
                     child: const Icon(Icons.edit),
                     )
@@ -248,23 +429,38 @@ class YourList extends StatelessWidget{
           },
         ), 
         ),
-        Container(
-          padding: EdgeInsets.all(10),
-          child:
+        Row(
+          children:[
           FloatingActionButton(onPressed: (){
-            String yourlistjson = "";
+            showEditScreen("New quest","a quest to help defeat the dragon", 5);
+            String yourlistjson = "{\"yourlist\":[";
             for (int i =0; i < yourlist!.length; i++){
-              yourlistjson += yourlist![i].toJson().toString()+",";
+              yourlistjson += yourlist![i].toJson().toString();
+              if(i!=yourlist!.length-1){
+                yourlistjson +=",";
+              }
             }
+            yourlistjson+= "]}";
             _writeFile(yourlistjson, 'yourlist.txt');
-            
+            setState(() {
+              isLoaded=false;
+            });
+            getData();
           },
           heroTag: "addItem",
+          
             child: const Icon(Icons.add),
           ) ,
+          FloatingActionButton(onPressed: (){
+            showRemoveScreen();
+          },
+          heroTag: "removeItem",
+          child: const Icon(Icons.remove ),
+          ),
+          ]
         )
           
-        
+          
         ],) 
         
       ),
@@ -295,7 +491,7 @@ final selfcarelist = [listItem('title', 5), listItem("2", 5)];
           children: [
             Expanded(child:
             ListView.builder(
-          itemCount: selfcarelist?.length,
+          itemCount: selfcarelist.length,
           itemBuilder: (context, index){
             return Container(
               child:
@@ -305,10 +501,10 @@ final selfcarelist = [listItem('title', 5), listItem("2", 5)];
                   Row(
                     children:[
                       Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         child: Text(
-                      selfcarelist![index].title,
-                      style: TextStyle(
+                      selfcarelist[index].title,
+                      style: const TextStyle(
                         fontSize: 24,
                       ),
                       
@@ -331,7 +527,7 @@ final selfcarelist = [listItem('title', 5), listItem("2", 5)];
         ), 
         ),
         Container(
-          padding: EdgeInsets.all(10),
+          padding: const EdgeInsets.all(10),
           child:
           FloatingActionButton(onPressed: (){
           },
@@ -351,6 +547,9 @@ bool openDylexicfont = false;
 bool halloween = false;
 bool dark = false;
 class Settings extends StatefulWidget{
+  const Settings({super.key});
+
+  @override
   State<Settings> createState()=> _stateSettings();
 }
 class _stateSettings extends State<Settings>{
@@ -359,7 +558,7 @@ class _stateSettings extends State<Settings>{
     
     
 
-    void onChanged(bool boolean){};
+    void onChanged(bool boolean){}
     return Scaffold(
       appBar: AppBar(
         title: const Text("Settings"),
@@ -440,7 +639,7 @@ class NewList extends StatelessWidget{
       appBar: AppBar(
         title: const Text("Make a new List"),
       ),
-      body: Center(),
+      body: const Center(),
     );
   }
 }

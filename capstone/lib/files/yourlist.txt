@@ -1,1 +1,1 @@
-{title: title, description: null, weight: 5}
+{"yourlist":[{"title": "title", "description": "null", "weight": 5}]}

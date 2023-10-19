@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Monster{
-  Image picture = Image(image: NetworkImage("capstone\\lib\\images\\temp_dragon.jfif"));
+  Image picture = const Image(image: NetworkImage("capstone\\lib\\images\\temp_dragon.jfif"));
   int health = 0;
 
   Monster(Image image, int health){

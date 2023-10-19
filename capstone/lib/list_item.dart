@@ -14,9 +14,9 @@ var weight;
   }
 
   Map toJson()=>{
-    'title':title,
-    'description': description,
-    'weight':weight
+    '"title"':"\"$title\"",
+    '"description"': "\"$description\"",
+    '"weight"':weight
   };
 
   factory listItem.fromJson(dynamic json) {
