@@ -13,8 +13,10 @@ int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
 _writeFile(String text, String filename) async {
-  final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\${filename}');
+
+  final File file = File('lib\\Assets\\files\\${filename}');
   await file.writeAsString(text);
+  
 }
 
 
@@ -24,9 +26,19 @@ class MyApp extends StatefulWidget {
   const MyApp({super.key});
 @override
 State<MyApp> createState()=> _MyApp();
+
 }
 class _MyApp extends State<MyApp>{
   // This widget is the root of your application.
+      /*static void changefont(){
+      setState((){
+      if(font == 'OpenDyslexic'){
+        font = 'Ariel';
+      }else{
+        font = 'OpenDyslexic';
+      }
+      });
+    }*/
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -38,20 +50,11 @@ class _MyApp extends State<MyApp>{
       ),
       home: const MyHomePage(title: 'Home'),
     );
-    /*void changefont(){
-      setState((){
-        MaterialApp(
-      title: 'Home',
-      theme: ThemeData(
-        fontFamily: font,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffCA9CE1)),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Home'),
-      );});
-    }
-    */
+
+    
 }
+
+
   }
 
 
@@ -174,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<List<listItem>> _readFile(String filename,String listname) async {
   String text ="";
   try {
-    final File file = File('C:\\A Neumont\\Year3\\Q1\\Capstone\\capstone\\lib\\files\\yourlist.txt');
+    final File file = File('lib\\Assets\\files\\$filename');
     text = await file.readAsString();
   } catch (e) {
     print("Couldn't read file");
@@ -185,7 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
   return items;
   }
-  return <listItem> [listItem('null', 0)];
+  return <listItem> [listItem('null', 0, false)];
 }
 class YourList extends StatefulWidget{
 @override
@@ -208,8 +211,15 @@ setState(() {
     getData();
   }
 
-  showEditScreen(String title, String description, int weight) {
-  showDialog(
+  Future<listItem> showEditScreen(String title, String description, int weight) async {
+    var newName;
+    var newDescription;
+    int newWeight = 5;
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final TextEditingController weightController = TextEditingController();
+
+  listItem listitem = await  showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -245,6 +255,7 @@ setState(() {
                   Container(
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(
+                      controller: nameController,
                       decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter Name here ex: ' + title,
@@ -260,6 +271,7 @@ setState(() {
                   Container(
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(
+                      controller: descriptionController,
                       decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter description here ex: '+description,
@@ -275,6 +287,7 @@ setState(() {
                   Container(
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(
+                      controller: weightController,
                       decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter weight here ex: '+weight.toString(),
@@ -287,10 +300,14 @@ setState(() {
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        newName =  nameController.text;
+                        newWeight = int.parse(weightController.text);
+                        newDescription = descriptionController.text;
+                        listItem item = new listItem.withDescription(newName, newDescription,newWeight,false);
+                        Navigator.of(context).pop(item);
                       },
                       style: ElevatedButton.styleFrom(
-                        primary: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         // fixedSize: Size(250, 50),
                       ),
                       child: Text(
@@ -307,9 +324,12 @@ setState(() {
           ),
         );
       });
+return listitem;
 }
-  showRemoveScreen() {
-    showDialog(
+  Future<String> showRemoveScreen() async {
+    final TextEditingController  nameController = TextEditingController();
+
+    return await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -345,6 +365,7 @@ setState(() {
                   Container(
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(
+                      controller: nameController,
                       decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter Name here ',
@@ -357,17 +378,17 @@ setState(() {
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(nameController.text);
                       },
                       style: ElevatedButton.styleFrom(
-                        primary: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         // fixedSize: Size(250, 50),
                       ),
                       child: Text(
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary
                           ),
-                        "Submit",
+                        "delete quest",
                       ),
                     ),
                   ),
@@ -377,9 +398,11 @@ setState(() {
           ),
         );
       });
+
   }
   @override
   Widget build(BuildContext context){
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your list"),
@@ -403,6 +426,23 @@ setState(() {
                 children: [
                   Row(
                     children:[
+                      Checkbox(
+                      checkColor: Colors.white,
+                      value: yourlist![index].done,
+                      onChanged: (bool? value) {
+                        String yourlistjson = "{\"yourlist\":[";
+                        for (int i =0; i < yourlist!.length; i++){
+                          yourlistjson += yourlist![i].toJson().toString();
+                          if(i!=yourlist!.length-1){
+                            yourlistjson +=",";
+                          }
+                        }
+                        yourlistjson+= "]}";
+                        _writeFile(yourlistjson, 'yourlist.txt');
+                        setState(() {
+                          yourlist![index].done = value!;
+                        });
+                      }),
                       Container(
                         padding: const EdgeInsets.all(10),
                         child: Text(
@@ -414,15 +454,29 @@ setState(() {
                     ), 
                     ),
                     
-                    FloatingActionButton(onPressed: (){
-                      showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
+                    FloatingActionButton(onPressed: () async {
+                      listItem item =  await showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
+                      yourlist![index] = item;
+                      String yourlistjson = "{\"yourlist\":[";
+                      for (int i =0; i < yourlist!.length; i++){
+                        yourlistjson += yourlist![i].toJson().toString();
+                        if(i!=yourlist!.length-1){
+                          yourlistjson +=",";
+                        }
+                      }
+                      yourlistjson+= "]}";
+                      _writeFile(yourlistjson, 'yourlist.txt');
+                      setState(() {
+                        isLoaded=false;
+                      });
+                      getData();
                     },
+                    heroTag: "edit$index",
                     child: const Icon(Icons.edit),
                     )
                     ]
                   ),
                   
-
                 ],
                 )
             );
@@ -431,8 +485,9 @@ setState(() {
         ),
         Row(
           children:[
-          FloatingActionButton(onPressed: (){
-            showEditScreen("New quest","a quest to help defeat the dragon", 5);
+          FloatingActionButton(onPressed: () async {
+            listItem newlistItem = await showEditScreen("New quest","a quest to help defeat the dragon", 5);
+            yourlist?.add(newlistItem);
             String yourlistjson = "{\"yourlist\":[";
             for (int i =0; i < yourlist!.length; i++){
               yourlistjson += yourlist![i].toJson().toString();
@@ -451,9 +506,29 @@ setState(() {
           
             child: const Icon(Icons.add),
           ) ,
-          FloatingActionButton(onPressed: (){
-            showRemoveScreen();
-          },
+          FloatingActionButton(onPressed: () async {
+            String name = await showRemoveScreen();
+            for(int i = 0; i< yourlist!.length; i++){
+              if(name== yourlist![i].title){
+                yourlist!.removeAt(i);
+                break;
+              }
+            }
+              String yourlistjson = "{\"yourlist\":[";
+            for (int j = 0; j < yourlist!.length; j++){
+              yourlistjson += yourlist![j].toJson().toString();
+              if(j!=yourlist!.length-1){
+                yourlistjson +=",";
+              }
+            }
+            yourlistjson+= "]}";
+            _writeFile(yourlistjson, 'yourlist.txt');
+            setState(() {
+              isLoaded=false;
+            });
+            getData();
+            }
+          ,
           heroTag: "removeItem",
           child: const Icon(Icons.remove ),
           ),
@@ -471,12 +546,12 @@ setState(() {
 
 class SelfCareList extends StatelessWidget{
 
-final selfcarelist = [listItem('title', 5), listItem("2", 5)];
+final selfcarelist = [listItem('title', 5, false), listItem("2", 5, false)];
 //List<listItem> readFile(){
 
 //}
     void addItem(String title, String description, int weight){
-      selfcarelist.add(listItem.withDescription(title, description, weight));
+      selfcarelist.add(listItem.withDescription(title, description, weight, false));
     }
     
   SelfCareList({super.key});
@@ -548,11 +623,12 @@ bool halloween = false;
 bool dark = false;
 class Settings extends StatefulWidget{
   const Settings({super.key});
-
   @override
   State<Settings> createState()=> _stateSettings();
 }
 class _stateSettings extends State<Settings>{
+
+
   @override
   Widget build(BuildContext context){
     
@@ -586,10 +662,7 @@ class _stateSettings extends State<Settings>{
             children: [
               Switch(value: openDylexicfont, 
               onChanged: (bool boolean){
-                if(boolean){
-                font = 'OpenDyslexic';
-                }else {font = 'Ariel';
-                }
+
                 //_MyApp _myApp = new _MyApp();
                 //_myApp.build(context);
                 setState((){
