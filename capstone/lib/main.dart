@@ -4,6 +4,9 @@ import 'dart:math';
 import 'dart:io';
 import 'package:capstone/list_item.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 
 void main() {
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
@@ -13,11 +16,29 @@ int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
 _writeFile(String text, String filename) async {
+  final directory = await getApplicationDocumentsDirectory();
+  final path = directory.path;
+File file = File('$path/$filename');
 
-  final File file = File('lib\\Assets\\files\\${filename}');
-  await file.writeAsString(text);
-  
+    bool bolean = await file.exists();
+    if (!bolean) {
+      file.create();
+      file.writeAsString(text);
+       // Close the file
+    }
+    // Open the file in write mode
+      IOSink sink = file.openWrite(mode: FileMode.writeOnly);
+      try {
+        // Write your data to the file
+        sink.write(text);
+        await sink.flush(); // Ensure data is written
+      } finally {
+        await sink.close();
+      }
+  //final File file = File('Assets\\files\\'+filename);
+  //await file.writeAsString(text);
 }
+
 
 
 var font = 'OpenDyslexic';
@@ -39,6 +60,7 @@ class _MyApp extends State<MyApp>{
       }
       });
     }*/
+    
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -69,9 +91,19 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  
+  Future<bool> askPermissions() async{
+    PermissionStatus status = await Permission.manageExternalStorage.request();
+      if (status.isDenied) {
+        // Permission is denied, and you may need to explain why you need it and request it again.
+        await Permission.manageExternalStorage.request();
+      } else if (status.isPermanentlyDenied) {
+      }
+      return status.isGranted;
+    }
   @override
   Widget build(BuildContext context) {
-
+    askPermissions();
     return Scaffold(
       appBar: AppBar(
 
@@ -174,13 +206,15 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-  Future<List<listItem>> _readFile(String filename,String listname) async {
+  Future<List<listItem>> _readFile(String filename,String listname, BuildContext context) async {
   String text ="";
   try {
-    final File file = File('lib\\Assets\\files\\$filename');
+    //text = await DefaultAssetBundle.of(context).loadString('Assets/files/$filename');
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File("$path/$filename");
     text = await file.readAsString();
   } catch (e) {
-    print("Couldn't read file");
     print(e);
   }
   if(text != ""){
@@ -188,18 +222,20 @@ class _MyHomePageState extends State<MyHomePage> {
   List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
   return items;
   }
-  return <listItem> [listItem('null', 0, false)];
+  return <listItem> [listItem.withDescription('','', 0, false)];
 }
 class YourList extends StatefulWidget{
 @override
   State<YourList> createState()=> _stateYourList();
   const YourList({super.key});
+
 }
+// ignore: camel_case_types
 class _stateYourList extends State<YourList>{
   List<listItem>? yourlist;
 
   getData() async{
-    yourlist = await _readFile("yourlist.txt", "yourlist");
+    yourlist = await _readFile("yourlist.txt", "yourlist", context);
 setState(() {
     isLoaded=true;
   });
@@ -212,32 +248,29 @@ setState(() {
   }
 
   Future<listItem> showEditScreen(String title, String description, int weight) async {
-    var newName;
-    var newDescription;
-    int newWeight = 5;
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
     final TextEditingController weightController = TextEditingController();
 
-  listItem listitem = await  showDialog(
+  var listitem = await  showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(
               Radius.circular(
                 20.0,
               ),
             ),
           ),
-          contentPadding: EdgeInsets.only(
+          contentPadding: const EdgeInsets.only(
             top: 10.0,
           ),
           title: Text(
-            "Edit "+title,
-            style: TextStyle(fontSize: 24.0),
+            "Edit $title",
+            style: const TextStyle(fontSize: 24.0),
           ),
-          content: Container(
+          content: SizedBox(
             height: 400,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(8.0),
@@ -246,8 +279,8 @@ setState(() {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       "Name of quest",
                     ),
@@ -257,13 +290,14 @@ setState(() {
                     child: TextField(
                       controller: nameController,
                       decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter Name here ex: ' + title,
+                          border: const OutlineInputBorder(),
+                          
+                          hintText: 'Enter Name here ex: $title',
                           labelText: 'Name'),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       "Description of quest",
                     ),
@@ -273,13 +307,13 @@ setState(() {
                     child: TextField(
                       controller: descriptionController,
                       decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter description here ex: '+description,
+                          border: const OutlineInputBorder(),
+                          hintText: 'Enter description here ex: $description',
                           labelText: 'Description'),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       "Weight of quest",
                     ),
@@ -289,8 +323,8 @@ setState(() {
                     child: TextField(
                       controller: weightController,
                       decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter weight here ex: '+weight.toString(),
+                          border: const OutlineInputBorder(),
+                          hintText: 'Enter weight here ex: $weight',
                           labelText: 'Weight'),
                     ),
                   ),
@@ -300,10 +334,16 @@ setState(() {
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        newName =  nameController.text;
-                        newWeight = int.parse(weightController.text);
-                        newDescription = descriptionController.text;
-                        listItem item = new listItem.withDescription(newName, newDescription,newWeight,false);
+                        if(nameController.text != ""){
+                          title = nameController.text;
+                        }
+                        if(weightController.text != ""){
+                          weight = int.parse(weightController.text);
+                        }
+                        if(descriptionController.text != ""){
+                          description = descriptionController.text;
+                        }
+                        listItem item = listItem.withDescription(title, description,weight,false);
                         Navigator.of(context).pop(item);
                       },
                       style: ElevatedButton.styleFrom(
@@ -324,6 +364,7 @@ setState(() {
           ),
         );
       });
+      listitem ??= listItem.withDescription(title, description,weight,false);
 return listitem;
 }
   Future<String> showRemoveScreen() async {
@@ -333,21 +374,21 @@ return listitem;
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(
               Radius.circular(
                 20.0,
               ),
             ),
           ),
-          contentPadding: EdgeInsets.only(
+          contentPadding: const EdgeInsets.only(
             top: 10.0,
           ),
-          title: Text(
+          title: const Text(
             "Edit ",
             style: TextStyle(fontSize: 24.0),
           ),
-          content: Container(
+          content: SizedBox(
             height: 400,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(8.0),
@@ -356,8 +397,8 @@ return listitem;
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       "Name of quest",
                     ),
@@ -366,7 +407,7 @@ return listitem;
                     padding: const EdgeInsets.all(8.0),
                     child: TextField(
                       controller: nameController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter Name here ',
                           labelText: 'Name'),
@@ -400,12 +441,54 @@ return listitem;
       });
 
   }
+  showDicePopUp(String name) async {
+
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(
+                20.0,
+              ),
+            ),
+          ),
+          contentPadding: const EdgeInsets.only(
+            top: 10.0,
+          ),
+          title: const Text(
+            "Edit",
+            style: TextStyle(fontSize: 24.0),
+          ),
+          content: SizedBox(
+            height: 400,
+            child:  Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "Name of quest: $name",
+                    ),
+                  ),
+                  
+                ],
+              ),
+            ),
+        );
+      });
+
+  }
+  
   @override
   Widget build(BuildContext context){
-    
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Your list"),
+        title:  const Text("Your List"),
         
       ),
       body: Visibility(
@@ -419,44 +502,16 @@ return listitem;
             ListView.builder(
           itemCount: yourlist?.length,
           itemBuilder: (context, index){
-            return Container(
-              child:
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children:[
-                      Checkbox(
-                      checkColor: Colors.white,
-                      value: yourlist![index].done,
-                      onChanged: (bool? value) {
-                        String yourlistjson = "{\"yourlist\":[";
-                        for (int i =0; i < yourlist!.length; i++){
-                          yourlistjson += yourlist![i].toJson().toString();
-                          if(i!=yourlist!.length-1){
-                            yourlistjson +=",";
-                          }
-                        }
-                        yourlistjson+= "]}";
-                        _writeFile(yourlistjson, 'yourlist.txt');
-                        setState(() {
-                          yourlist![index].done = value!;
-                        });
-                      }),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                      yourlist![index].title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                      ),
-                      
-                    ), 
-                    ),
-                    
-                    FloatingActionButton(onPressed: () async {
-                      listItem item =  await showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
-                      yourlist![index] = item;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children:[
+                    Checkbox(
+                    checkColor: Colors.white,
+                    value: yourlist![index].done,
+                    onChanged: (bool? value) {
+                      yourlist![index].done = value!;
                       String yourlistjson = "{\"yourlist\":[";
                       for (int i =0; i < yourlist!.length; i++){
                         yourlistjson += yourlist![i].toJson().toString();
@@ -467,19 +522,45 @@ return listitem;
                       yourlistjson+= "]}";
                       _writeFile(yourlistjson, 'yourlist.txt');
                       setState(() {
-                        isLoaded=false;
+                        yourlist![index].done = value;
                       });
-                      getData();
-                    },
-                    heroTag: "edit$index",
-                    child: const Icon(Icons.edit),
-                    )
-                    ]
+                    }),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                    yourlist![index].title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                    ),
+                    
+                  ), 
                   ),
                   
-                ],
-                )
-            );
+                  FloatingActionButton(onPressed: () async {
+                    listItem item =  await showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
+                    yourlist![index] = item;
+                    String yourlistjson = "{\"yourlist\":[";
+                    for (int i =0; i < yourlist!.length; i++){
+                      yourlistjson += yourlist![i].toJson().toString();
+                      if(i!=yourlist!.length-1){
+                        yourlistjson +=",";
+                      }
+                    }
+                    yourlistjson+= "]}";
+                    _writeFile(yourlistjson, 'yourlist.txt');
+                    setState(() {
+                      isLoaded=false;
+                    });
+                    getData();
+                  },
+                  heroTag: "edit$index",
+                  child: const Icon(Icons.edit),
+                  )
+                  ]
+                ),
+                
+              ],
+              );
           },
         ), 
         ),
@@ -532,6 +613,13 @@ return listitem;
           heroTag: "removeItem",
           child: const Icon(Icons.remove ),
           ),
+          ElevatedButton(
+            onPressed: (){
+              showDicePopUp(yourlist?[rollDice(yourlist!.length)].title);
+              
+            }, 
+            child: const Text("Randomly assign Quest")
+            ),
           ]
         )
           
@@ -568,36 +656,33 @@ final selfcarelist = [listItem('title', 5, false), listItem("2", 5, false)];
             ListView.builder(
           itemCount: selfcarelist.length,
           itemBuilder: (context, index){
-            return Container(
-              child:
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children:[
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                      selfcarelist[index].title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                      ),
-                      
-                    ), 
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children:[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                    selfcarelist[index].title,
+                    style: const TextStyle(
+                      fontSize: 24,
                     ),
                     
-                    FloatingActionButton(onPressed: (){
-
-                    },
-                    child: const Icon(Icons.edit),
-                    )
-                    ]
+                  ), 
                   ),
                   
+                  FloatingActionButton(onPressed: (){
 
-                ],
-                )
-            );
+                  },
+                  child: const Icon(Icons.edit),
+                  )
+                  ]
+                ),
+                
+
+              ],
+              );
           },
         ), 
         ),
@@ -626,6 +711,7 @@ class Settings extends StatefulWidget{
   @override
   State<Settings> createState()=> _stateSettings();
 }
+// ignore: camel_case_types
 class _stateSettings extends State<Settings>{
 
 
