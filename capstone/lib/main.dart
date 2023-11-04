@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import 'package:capstone/list_item.dart';
+import 'package:capstone/monster.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 
 void main() {
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
@@ -95,9 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<bool> askPermissions() async{
     PermissionStatus status = await Permission.manageExternalStorage.request();
       if (status.isDenied) {
-        // Permission is denied, and you may need to explain why you need it and request it again.
         await Permission.manageExternalStorage.request();
-      } else if (status.isPermanentlyDenied) {
       }
       return status.isGranted;
     }
@@ -206,10 +204,9 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-  Future<List<listItem>> _readFile(String filename,String listname, BuildContext context) async {
+  Future<List<listItem>> _readFile(String filename,String listname) async {
   String text ="";
   try {
-    //text = await DefaultAssetBundle.of(context).loadString('Assets/files/$filename');
     final directory = await getApplicationDocumentsDirectory();
     final path = directory.path;
     final file = File("$path/$filename");
@@ -224,6 +221,22 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   return <listItem> [listItem.withDescription('','', 0, false)];
 }
+  Future<Monster> _readMonsterFile(String filename) async {
+  String text ="";
+  try {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File("$path/$filename");
+    text = await file.readAsString();
+  } catch (e) {
+    print(e);
+  }
+  if(text != ""){
+    var decoded = jsonDecode(text);
+  return Monster.fromJson(decoded);
+  }
+  return Monster(100, 100, "temp_dragpn.jpg");
+}
 class YourList extends StatefulWidget{
 @override
   State<YourList> createState()=> _stateYourList();
@@ -233,9 +246,10 @@ class YourList extends StatefulWidget{
 // ignore: camel_case_types
 class _stateYourList extends State<YourList>{
   List<listItem>? yourlist;
-
+  Monster? yourMonster;
   getData() async{
-    yourlist = await _readFile("yourlist.txt", "yourlist", context);
+    yourlist = await _readFile("yourlist.txt", "yourlist");
+    yourMonster = await _readMonsterFile("yourmonster.txt");
 setState(() {
     isLoaded=true;
   });
@@ -486,6 +500,8 @@ return listitem;
   @override
   Widget build(BuildContext context){
 
+    
+    
     return Scaffold(
       appBar: AppBar(
         title:  const Text("Your List"),
@@ -496,9 +512,11 @@ return listitem;
         replacement: const Center(
           child: CircularProgressIndicator(),
         ),
-        child:Column(
+        child:
+        Column(
           children: [
-            Expanded(child:
+            Container(
+              child: Expanded(child:
             ListView.builder(
           itemCount: yourlist?.length,
           itemBuilder: (context, index){
@@ -523,17 +541,31 @@ return listitem;
                       _writeFile(yourlistjson, 'yourlist.txt');
                       setState(() {
                         yourlist![index].done = value;
+                        if(value){
+                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()- yourlist![index].weight) as int?)!);
+                        }else{
+                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight) as int?)!);
+                        }
+                        if(yourMonster!.getCurrentHealth() <= 0){
+                          yourMonster?.setImageName("deadDragon.jpg");
+                        }else{
+                          yourMonster?.setImageName("temp_dragpn.jpg");
+                        }
                       });
+                      String yourdragonJson = "${yourMonster!.toJson()}";
+                      _writeFile(yourdragonJson, "yourmonster.txt");
                     }),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.all(10),
+                        child: Text(
                     yourlist![index].title,
                     style: const TextStyle(
                       fontSize: 24,
                     ),
                     
-                  ), 
+                  ),
+                        ) 
                   ),
                   
                   FloatingActionButton(onPressed: () async {
@@ -551,12 +583,29 @@ return listitem;
                     setState(() {
                       isLoaded=false;
                     });
-                    getData();
+                    await getData();
                   },
                   heroTag: "edit$index",
                   child: const Icon(Icons.edit),
-                  )
+                  ),
                   ]
+                ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                        yourlist![index].description,
+                        style: 
+                          const TextStyle(
+                            fontSize: 12,
+                          ),
+                          )
+                        )
+                      
+                    ),
+                  ],
                 ),
                 
               ],
@@ -564,65 +613,98 @@ return listitem;
           },
         ), 
         ),
-        Row(
-          children:[
-          FloatingActionButton(onPressed: () async {
-            listItem newlistItem = await showEditScreen("New quest","a quest to help defeat the dragon", 5);
-            yourlist?.add(newlistItem);
-            String yourlistjson = "{\"yourlist\":[";
-            for (int i =0; i < yourlist!.length; i++){
-              yourlistjson += yourlist![i].toJson().toString();
-              if(i!=yourlist!.length-1){
-                yourlistjson +=",";
-              }
-            }
-            yourlistjson+= "]}";
-            _writeFile(yourlistjson, 'yourlist.txt');
-            setState(() {
-              isLoaded=false;
-            });
-            getData();
-          },
-          heroTag: "addItem",
-          
-            child: const Icon(Icons.add),
-          ) ,
-          FloatingActionButton(onPressed: () async {
-            String name = await showRemoveScreen();
-            for(int i = 0; i< yourlist!.length; i++){
-              if(name== yourlist![i].title){
-                yourlist!.removeAt(i);
-                break;
-              }
-            }
-              String yourlistjson = "{\"yourlist\":[";
-            for (int j = 0; j < yourlist!.length; j++){
-              yourlistjson += yourlist![j].toJson().toString();
-              if(j!=yourlist!.length-1){
-                yourlistjson +=",";
-              }
-            }
-            yourlistjson+= "]}";
-            _writeFile(yourlistjson, 'yourlist.txt');
-            setState(() {
-              isLoaded=false;
-            });
-            getData();
-            }
-          ,
-          heroTag: "removeItem",
-          child: const Icon(Icons.remove ),
-          ),
-          ElevatedButton(
-            onPressed: (){
-              showDicePopUp(yourlist?[rollDice(yourlist!.length)].title);
-              
-            }, 
-            child: const Text("Randomly assign Quest")
             ),
-          ]
-        )
-          
+            
+        Column(
+          children:[
+            Row(
+              children: [
+                Image.asset("Assets/images/${yourMonster?.getimageName()}",
+                height: 200,
+                scale: 2,
+                )
+                
+              ],
+              
+            ),
+            Row(
+              children: [
+                Text("${yourMonster?.getCurrentHealth()}/${yourMonster?.getHealth()}"),
+                ElevatedButton(
+                  onPressed: (){
+                    setState(() {
+                      yourMonster!.setCurrentHealth(yourMonster!.getHealth());
+                    });
+                    String yourdragonJson = "${yourMonster!.toJson()}";
+                    _writeFile(yourdragonJson, "yourmonster.txt");
+                  },
+                  child: Text("Reset Health")
+                )
+            ],
+            ),
+            Row(
+              children:[
+                Padding(padding: const EdgeInsets.all(10),
+                child: FloatingActionButton(onPressed: () async {
+                listItem newlistItem = await showEditScreen("New quest","a quest to help defeat the dragon", 5);
+                yourlist?.add(newlistItem);
+                String yourlistjson = "{\"yourlist\":[";
+                for (int i =0; i < yourlist!.length; i++){
+                  yourlistjson += yourlist![i].toJson().toString();
+                  if(i!=yourlist!.length-1){
+                    yourlistjson +=",";
+                  }
+                }
+                yourlistjson+= "]}";
+                _writeFile(yourlistjson, 'yourlist.txt');
+                setState(() {
+                  isLoaded=false;
+                });
+                await getData();
+              },
+              heroTag: "addItem",
+              
+                child: const Icon(Icons.add),
+              ) ,
+                ),
+              Padding(padding: const EdgeInsets.all(10),
+              child:FloatingActionButton(onPressed: () async {
+                String name = await showRemoveScreen();
+                for(int i = 0; i< yourlist!.length; i++){
+                  if(name== yourlist![i].getTitle()){
+                    yourlist!.removeAt(i);
+                    break;
+                  }
+                }
+                  String yourlistjson = "{\"yourlist\":[";
+                for (int j = 0; j < yourlist!.length; j++){
+                  yourlistjson += yourlist![j].toJson().toString();
+                  if(j!=yourlist!.length-1){
+                    yourlistjson +=",";
+                  }
+                }
+                yourlistjson+= "]}";
+                _writeFile(yourlistjson, 'yourlist.txt');
+                setState(() {
+                  isLoaded=false;
+                });
+                await getData();
+                }
+              ,
+              heroTag: "removeItem",
+              child: const Icon(Icons.remove ),
+              ), 
+              ),
+              
+              ElevatedButton(
+                onPressed: (){
+                  showDicePopUp(yourlist![rollDice(yourlist!.length)].getTitle());
+                }, 
+                child: const Text("Randomly assign Quest")
+                ),
+              ]
+            ),
+          ],),
           
         ],) 
         

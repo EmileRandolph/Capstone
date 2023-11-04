@@ -1,19 +1,19 @@
-import 'package:flutter/material.dart';
+
 
 class Monster{
-  Image picture = const Image(image: NetworkImage("capstone\\lib\\images\\temp_dragon.jfif"));
-  int health = 0;
+  int health = 100;
+  int currentHealth = 100;
+  String imageName = "temp_dragpn.jpg";
+  Monster(this.currentHealth, this.health, this.imageName);
 
-  Monster(Image image, int health){
-    this.health = health;
-    picture = image;
-  }
-  void setPicture(Image image){
-    picture = image;
-  }
+    Map toJson()=>{
+    '"health"': health,
+    '"currentHealth"': currentHealth,
+    '"imageName"': '"$imageName"'
+  };
 
-  Image getPicture(){
-    return picture;
+  factory Monster.fromJson(dynamic json) {
+    return Monster(json['currentHealth'] as int, json['health'] as int, json['imageName'] as String);
   }
 
   int getHealth(){
@@ -22,6 +22,22 @@ class Monster{
 
   void setHealth(int num){
     health = num;
+  }
+
+  int getCurrentHealth(){
+    return currentHealth;
+  }
+
+  void setCurrentHealth(int num){
+    currentHealth = num;
+  }
+
+  String getimageName(){
+    return imageName;
+  }
+
+  void setImageName(String name){
+    imageName = name;
   }
 
 }
