@@ -1,14 +1,189 @@
 
-import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'package:capstone/list_item.dart';
-import 'package:capstone/monster.dart';
+import 'package:capstone/listUI.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+import 'dart:async';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+/// Streams are created so that app can respond to notification-related events
+/// since the plugin is initialised in the `main` function
+final StreamController<ReceivedNotification> didReceiveLocalNotificationStream =
+    StreamController<ReceivedNotification>.broadcast();
+
+final StreamController<String?> selectNotificationStream =
+    StreamController<String?>.broadcast();
+
+const MethodChannel platform =
+    MethodChannel('dexterx.dev/flutter_local_notifications_example');
+
+const String portName = 'notification_send_port';
+/// Defines a iOS/MacOS notification category for text input actions.
+const String darwinNotificationCategoryText = 'textCategory';
+
+/// Defines a iOS/MacOS notification category for plain actions.
+const String darwinNotificationCategoryPlain = 'plainCategory';
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  // ignore: avoid_print
+  print('notification(${notificationResponse.id}) action tapped: '
+      '${notificationResponse.actionId} with'
+      ' payload: ${notificationResponse.payload}');
+  if (notificationResponse.input?.isNotEmpty ?? false) {
+    // ignore: avoid_print
+    print(
+        'notification action tapped with input: ${notificationResponse.input}');
+  }
+}
+
+class ReceivedNotification {
+  ReceivedNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.payload,
+  });
+
+  final int id;
+  final String? title;
+  final String? body;
+  final String? payload;
+}
+
+int id = 0;
+const String navigationActionId = 'id_3';
+String? selectedNotificationPayload;
+
+Future<void> _configureLocalTimeZone() async {
+  if (kIsWeb || Platform.isLinux) {
+    return;
+  }
+  tz.initializeTimeZones();
+  final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(timeZoneName));
+}
+
+
+void main() async{
+    // needed if you intend to initialize in the `main` function
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await _configureLocalTimeZone();
+
+  final NotificationAppLaunchDetails? notificationAppLaunchDetails = !kIsWeb &&
+          Platform.isLinux
+      ? null
+      : await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+
+  if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+    selectedNotificationPayload =
+        notificationAppLaunchDetails!.notificationResponse?.payload;
+
+  }
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  final List<DarwinNotificationCategory> darwinNotificationCategories =
+      <DarwinNotificationCategory>[
+    DarwinNotificationCategory(
+      darwinNotificationCategoryText,
+      actions: <DarwinNotificationAction>[
+        DarwinNotificationAction.text(
+          'text_1',
+          'Action 1',
+          buttonTitle: 'Send',
+          placeholder: 'Placeholder',
+        ),
+      ],
+    ),
+    DarwinNotificationCategory(
+      darwinNotificationCategoryPlain,
+      actions: <DarwinNotificationAction>[
+        DarwinNotificationAction.plain('id_1', 'Action 1'),
+        DarwinNotificationAction.plain(
+          'id_2',
+          'Action 2 (destructive)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.destructive,
+          },
+        ),
+        DarwinNotificationAction.plain(
+          navigationActionId,
+          'Action 3 (foreground)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.foreground,
+          },
+        ),
+        DarwinNotificationAction.plain(
+          'id_4',
+          'Action 4 (auth required)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.authenticationRequired,
+          },
+        ),
+      ],
+      options: <DarwinNotificationCategoryOption>{
+        DarwinNotificationCategoryOption.hiddenPreviewShowTitle,
+      },
+    )
+  ];
+
+  /// Note: permissions aren't requested here just to demonstrate that can be
+  /// done later
+  final DarwinInitializationSettings initializationSettingsDarwin =
+      DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+    onDidReceiveLocalNotification:
+        (int id, String? title, String? body, String? payload) async {
+      didReceiveLocalNotificationStream.add(
+        ReceivedNotification(
+          id: id,
+          title: title,
+          body: body,
+          payload: payload,
+        ),
+      );
+    },
+    notificationCategories: darwinNotificationCategories,
+  );
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsDarwin,
+    macOS: initializationSettingsDarwin,
+  );
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse:
+        (NotificationResponse notificationResponse) {
+      switch (notificationResponse.notificationResponseType) {
+        case NotificationResponseType.selectedNotification:
+          selectNotificationStream.add(notificationResponse.payload);
+          break;
+        case NotificationResponseType.selectedNotificationAction:
+          if (notificationResponse.actionId == navigationActionId) {
+            selectNotificationStream.add(notificationResponse.payload);
+          }
+          break;
+      }
+    },
+    onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+  );
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
 }
 var isLoaded = false;
@@ -39,16 +214,29 @@ File file = File('$path/$filename');
   //await file.writeAsString(text);
 }
 
-
+  tz.TZDateTime _nextInstanceOfTenAM() {
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 10);
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+    return scheduledDate;
+  }
 
 var font = 'OpenDyslexic';
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.notificationAppLaunchDetails});
+  final NotificationAppLaunchDetails? notificationAppLaunchDetails;
+
+  bool get didNotificationLaunchApp =>
+      notificationAppLaunchDetails?.didNotificationLaunchApp ?? false;
 @override
 State<MyApp> createState()=> _MyApp();
 
 }
+
 class _MyApp extends State<MyApp>{
   // This widget is the root of your application.
       /*static void changefont(){
@@ -60,9 +248,127 @@ class _MyApp extends State<MyApp>{
       }
       });
     }*/
-    
+  bool _notificationsEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isAndroidPermissionGranted();
+    _requestPermissions();
+    _configureDidReceiveLocalNotificationSubject();
+    _configureSelectNotificationSubject();
+  }
+
+  Future<void> _isAndroidPermissionGranted() async {
+    if (Platform.isAndroid) {
+      final bool granted = await flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.areNotificationsEnabled() ??
+          false;
+
+      setState(() {
+        _notificationsEnabled = granted;
+      });
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    if (Platform.isIOS || Platform.isMacOS) {
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+    } else if (Platform.isAndroid) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      final bool? grantedNotificationPermission =
+          await androidImplementation?.requestNotificationsPermission();
+      setState(() {
+        _notificationsEnabled = grantedNotificationPermission ?? false;
+      });
+    }
+  }
+
+  void _configureDidReceiveLocalNotificationSubject() {
+    didReceiveLocalNotificationStream.stream
+        .listen((ReceivedNotification receivedNotification) async {
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+          title: receivedNotification.title != null
+              ? Text(receivedNotification.title!)
+              : null,
+          content: receivedNotification.body != null
+              ? Text(receivedNotification.body!)
+              : null,
+          actions: <Widget>[
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () async {
+                Navigator.of(context, rootNavigator: true).pop();
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) =>
+                        const MyHomePage(title: 'Home'),
+                  ),
+                );
+              },
+              child: const Text('Ok'),
+            )
+          ],
+        ),
+      );
+    });
+  }
+
+  void _configureSelectNotificationSubject() {
+    selectNotificationStream.stream.listen((String? payload) async {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (BuildContext context) => const MyHomePage(title: 'Home'),
+      ));
+    });
+  }
+
+  @override
+  void dispose() {
+    didReceiveLocalNotificationStream.close();
+    selectNotificationStream.close();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
+      Future<void> _scheduleDailyTenAMNotification() async {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+        0,
+        'daily scheduled notification title',
+        'daily scheduled notification body',
+        _nextInstanceOfTenAM(),
+        const NotificationDetails(
+          android: AndroidNotificationDetails('daily notification channel id',
+              'daily notification channel name',
+              channelDescription: 'daily notification description'),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time);
+  }
+  _scheduleDailyTenAMNotification();
     return MaterialApp(
       title: 'Home',
       theme: ThemeData(
@@ -92,16 +398,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   
-  Future<bool> askPermissions() async{
-    PermissionStatus status = await Permission.manageExternalStorage.request();
-      if (status.isDenied) {
-        await Permission.manageExternalStorage.request();
-      }
-      return status.isGranted;
-    }
   @override
   Widget build(BuildContext context) {
-    askPermissions();
+
     return Scaffold(
       appBar: AppBar(
 
@@ -125,7 +424,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   MaterialPageRoute(builder:(context) => const Settings()),
                   );
               },
-                    
                     tooltip: 'opens settings',
                     label: const Icon(Icons.settings),
                   ),
@@ -144,10 +442,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     isLoaded=false;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => const YourList()),
+                  MaterialPageRoute(builder:(context) => const  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', )),
                   );
               },
-
                 ),
               ]
             ),
@@ -170,7 +467,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   onPressed: (){
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => SelfCareList()),
+                  MaterialPageRoute(builder:(context) => const  YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',)),
                   );
               }, 
                 ),
@@ -204,586 +501,9 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-  Future<List<listItem>> _readFile(String filename,String listname) async {
-  String text ="";
-  try {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    final file = File("$path/$filename");
-    text = await file.readAsString();
-  } catch (e) {
-    print(e);
-  }
-  if(text != ""){
-  var decoded = jsonDecode(text)[listname] as List;
-  List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
-  return items;
-  }
-  return <listItem> [listItem.withDescription('','', 0, false)];
-}
-  Future<Monster> _readMonsterFile(String filename) async {
-  String text ="";
-  try {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    final file = File("$path/$filename");
-    text = await file.readAsString();
-  } catch (e) {
-    print(e);
-  }
-  if(text != ""){
-    var decoded = jsonDecode(text);
-  return Monster.fromJson(decoded);
-  }
-  return Monster(100, 100, "temp_dragpn.jpg");
-}
-class YourList extends StatefulWidget{
-@override
-  State<YourList> createState()=> _stateYourList();
-  const YourList({super.key});
 
-}
-// ignore: camel_case_types
-class _stateYourList extends State<YourList>{
-  List<listItem>? yourlist;
-  Monster? yourMonster;
-  getData() async{
-    yourlist = await _readFile("yourlist.txt", "yourlist");
-    yourMonster = await _readMonsterFile("yourmonster.txt");
-setState(() {
-    isLoaded=true;
-  });
-  }
 
-  @override
-  void initState(){
-    super.initState();
-    getData();
-  }
 
-  Future<listItem> showEditScreen(String title, String description, int weight) async {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController descriptionController = TextEditingController();
-    final TextEditingController weightController = TextEditingController();
-
-  var listitem = await  showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(
-                20.0,
-              ),
-            ),
-          ),
-          contentPadding: const EdgeInsets.only(
-            top: 10.0,
-          ),
-          title: Text(
-            "Edit $title",
-            style: const TextStyle(fontSize: 24.0),
-          ),
-          content: SizedBox(
-            height: 400,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Name of quest",
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          
-                          hintText: 'Enter Name here ex: $title',
-                          labelText: 'Name'),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Description of quest",
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: TextField(
-                      controller: descriptionController,
-                      decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          hintText: 'Enter description here ex: $description',
-                          labelText: 'Description'),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Weight of quest",
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: TextField(
-                      controller: weightController,
-                      decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          hintText: 'Enter weight here ex: $weight',
-                          labelText: 'Weight'),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    height: 60,
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if(nameController.text != ""){
-                          title = nameController.text;
-                        }
-                        if(weightController.text != ""){
-                          weight = int.parse(weightController.text);
-                        }
-                        if(descriptionController.text != ""){
-                          description = descriptionController.text;
-                        }
-                        listItem item = listItem.withDescription(title, description,weight,false);
-                        Navigator.of(context).pop(item);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        // fixedSize: Size(250, 50),
-                      ),
-                      child: Text(
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary
-                          ),
-                        "Submit",
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      });
-      listitem ??= listItem.withDescription(title, description,weight,false);
-return listitem;
-}
-  Future<String> showRemoveScreen() async {
-    final TextEditingController  nameController = TextEditingController();
-
-    return await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(
-                20.0,
-              ),
-            ),
-          ),
-          contentPadding: const EdgeInsets.only(
-            top: 10.0,
-          ),
-          title: const Text(
-            "Edit ",
-            style: TextStyle(fontSize: 24.0),
-          ),
-          content: SizedBox(
-            height: 400,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Name of quest",
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter Name here ',
-                          labelText: 'Name'),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    height: 60,
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(nameController.text);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        // fixedSize: Size(250, 50),
-                      ),
-                      child: Text(
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary
-                          ),
-                        "delete quest",
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      });
-
-  }
-  showDicePopUp(String name) async {
-
-    return await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(
-                20.0,
-              ),
-            ),
-          ),
-          contentPadding: const EdgeInsets.only(
-            top: 10.0,
-          ),
-          title: const Text(
-            "Edit",
-            style: TextStyle(fontSize: 24.0),
-          ),
-          content: SizedBox(
-            height: 400,
-            child:  Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      "Name of quest: $name",
-                    ),
-                  ),
-                  
-                ],
-              ),
-            ),
-        );
-      });
-
-  }
-  
-  @override
-  Widget build(BuildContext context){
-
-    
-    
-    return Scaffold(
-      appBar: AppBar(
-        title:  const Text("Your List"),
-        
-      ),
-      body: Visibility(
-        visible: isLoaded,
-        replacement: const Center(
-          child: CircularProgressIndicator(),
-        ),
-        child:
-        Column(
-          children: [
-            Container(
-              child: Expanded(child:
-            ListView.builder(
-          itemCount: yourlist?.length,
-          itemBuilder: (context, index){
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children:[
-                    Checkbox(
-                    checkColor: Colors.white,
-                    value: yourlist![index].done,
-                    onChanged: (bool? value) {
-                      yourlist![index].done = value!;
-                      String yourlistjson = "{\"yourlist\":[";
-                      for (int i =0; i < yourlist!.length; i++){
-                        yourlistjson += yourlist![i].toJson().toString();
-                        if(i!=yourlist!.length-1){
-                          yourlistjson +=",";
-                        }
-                      }
-                      yourlistjson+= "]}";
-                      _writeFile(yourlistjson, 'yourlist.txt');
-                      setState(() {
-                        yourlist![index].done = value;
-                        if(value){
-                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()- yourlist![index].weight) as int?)!);
-                        }else{
-                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight) as int?)!);
-                        }
-                        if(yourMonster!.getCurrentHealth() <= 0){
-                          yourMonster?.setImageName("deadDragon.jpg");
-                        }else{
-                          yourMonster?.setImageName("temp_dragpn.jpg");
-                        }
-                      });
-                      String yourdragonJson = "${yourMonster!.toJson()}";
-                      _writeFile(yourdragonJson, "yourmonster.txt");
-                    }),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsetsDirectional.all(10),
-                        child: Text(
-                    yourlist![index].title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                    ),
-                    
-                  ),
-                        ) 
-                  ),
-                  
-                  FloatingActionButton(onPressed: () async {
-                    listItem item =  await showEditScreen(yourlist![index].title, yourlist![index].description, yourlist![index].weight);
-                    yourlist![index] = item;
-                    String yourlistjson = "{\"yourlist\":[";
-                    for (int i =0; i < yourlist!.length; i++){
-                      yourlistjson += yourlist![i].toJson().toString();
-                      if(i!=yourlist!.length-1){
-                        yourlistjson +=",";
-                      }
-                    }
-                    yourlistjson+= "]}";
-                    _writeFile(yourlistjson, 'yourlist.txt');
-                    setState(() {
-                      isLoaded=false;
-                    });
-                    await getData();
-                  },
-                  heroTag: "edit$index",
-                  child: const Icon(Icons.edit),
-                  ),
-                  ]
-                ),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                        yourlist![index].description,
-                        style: 
-                          const TextStyle(
-                            fontSize: 12,
-                          ),
-                          )
-                        )
-                      
-                    ),
-                  ],
-                ),
-                
-              ],
-              );
-          },
-        ), 
-        ),
-            ),
-            
-        Column(
-          children:[
-            Row(
-              children: [
-                Image.asset("Assets/images/${yourMonster?.getimageName()}",
-                height: 200,
-                scale: 2,
-                )
-                
-              ],
-              
-            ),
-            Row(
-              children: [
-                Text("${yourMonster?.getCurrentHealth()}/${yourMonster?.getHealth()}"),
-                ElevatedButton(
-                  onPressed: (){
-                    setState(() {
-                      yourMonster!.setCurrentHealth(yourMonster!.getHealth());
-                    });
-                    String yourdragonJson = "${yourMonster!.toJson()}";
-                    _writeFile(yourdragonJson, "yourmonster.txt");
-                  },
-                  child: Text("Reset Health")
-                )
-            ],
-            ),
-            Row(
-              children:[
-                Padding(padding: const EdgeInsets.all(10),
-                child: FloatingActionButton(onPressed: () async {
-                listItem newlistItem = await showEditScreen("New quest","a quest to help defeat the dragon", 5);
-                yourlist?.add(newlistItem);
-                String yourlistjson = "{\"yourlist\":[";
-                for (int i =0; i < yourlist!.length; i++){
-                  yourlistjson += yourlist![i].toJson().toString();
-                  if(i!=yourlist!.length-1){
-                    yourlistjson +=",";
-                  }
-                }
-                yourlistjson+= "]}";
-                _writeFile(yourlistjson, 'yourlist.txt');
-                setState(() {
-                  isLoaded=false;
-                });
-                await getData();
-              },
-              heroTag: "addItem",
-              
-                child: const Icon(Icons.add),
-              ) ,
-                ),
-              Padding(padding: const EdgeInsets.all(10),
-              child:FloatingActionButton(onPressed: () async {
-                String name = await showRemoveScreen();
-                for(int i = 0; i< yourlist!.length; i++){
-                  if(name== yourlist![i].getTitle()){
-                    yourlist!.removeAt(i);
-                    break;
-                  }
-                }
-                  String yourlistjson = "{\"yourlist\":[";
-                for (int j = 0; j < yourlist!.length; j++){
-                  yourlistjson += yourlist![j].toJson().toString();
-                  if(j!=yourlist!.length-1){
-                    yourlistjson +=",";
-                  }
-                }
-                yourlistjson+= "]}";
-                _writeFile(yourlistjson, 'yourlist.txt');
-                setState(() {
-                  isLoaded=false;
-                });
-                await getData();
-                }
-              ,
-              heroTag: "removeItem",
-              child: const Icon(Icons.remove ),
-              ), 
-              ),
-              
-              ElevatedButton(
-                onPressed: (){
-                  showDicePopUp(yourlist![rollDice(yourlist!.length)].getTitle());
-                }, 
-                child: const Text("Randomly assign Quest")
-                ),
-              ]
-            ),
-          ],),
-          
-        ],) 
-        
-      ),
-    );
-
-  }
-}
-
-class SelfCareList extends StatelessWidget{
-
-final selfcarelist = [listItem('title', 5, false), listItem("2", 5, false)];
-//List<listItem> readFile(){
-
-//}
-    void addItem(String title, String description, int weight){
-      selfcarelist.add(listItem.withDescription(title, description, weight, false));
-    }
-    
-  SelfCareList({super.key});
-  @override
-  Widget build(BuildContext context){
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Self Care Tasks"),
-      ),
-      body: Center(
-        child:Column(
-          children: [
-            Expanded(child:
-            ListView.builder(
-          itemCount: selfcarelist.length,
-          itemBuilder: (context, index){
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children:[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
-                    selfcarelist[index].title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                    ),
-                    
-                  ), 
-                  ),
-                  
-                  FloatingActionButton(onPressed: (){
-
-                  },
-                  child: const Icon(Icons.edit),
-                  )
-                  ]
-                ),
-                
-
-              ],
-              );
-          },
-        ), 
-        ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          child:
-          FloatingActionButton(onPressed: (){
-          },
-            child: const Icon(Icons.add),
-          ) ,
-        )
-          
-        
-        ],) 
-        
-      ),
-    );
-  }
-}
 bool healMonster = false;
 bool openDylexicfont = false;
 bool halloween = false;

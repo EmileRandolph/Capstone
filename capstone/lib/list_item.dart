@@ -1,20 +1,13 @@
-class listItem{
-var title;
-var description;
-var weight;
-bool done = false;
-  listItem(String title, int weight, bool done){
-    this.title = title;
-    this.weight = weight;
-    this.done = done;
-  }
+// ignore_for_file: camel_case_types
 
-  listItem.withDescription(String title, String description, int weight, bool done){
-    this.title = title;
-    this.description = description;
-    this.weight = weight;
-    this.done = done;
-  }
+class listItem{
+String title;
+String description = "";
+int weight;
+bool done = false;
+  listItem(this.title, this.weight, this.done);
+
+  listItem.withDescription(this.title, this.description, this.weight, this.done);
 
   Map toJson()=>{
     '"title"':"\"$title\"",
@@ -41,7 +34,7 @@ bool done = false;
   String getTitle(){
     return title;
   }
-    void setWeight(String weight){
+    void setWeight(int weight){
     this.weight = weight;
   }
 
