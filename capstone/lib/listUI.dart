@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import 'package:capstone/list_item.dart';
+import 'package:capstone/main.dart';
 import 'package:capstone/monster.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,11 +38,12 @@ File file = File('$path/$filename');
 class YourList extends StatefulWidget{
 @override
   State<YourList> createState()=> _stateYourList();  
-  const YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle});
+  YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle, required this.healMonster});
   final String listfilename;
   final String listname;
   final String monsterfilename;
   final String listTitle;
+  final bool healMonster;
   final bool isLoaded = false;
   
 
@@ -63,6 +65,19 @@ class _stateYourList extends State<YourList>{
   List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
   return items;
   }
+  if(listname == "yourlist"){
+    return <listItem> [
+    listItem.withDescription('Eat Breakfast','Eat something in the morning', 10, false),
+    listItem.withDescription('Brush Teeth','Brush your teeth in the morning', 10, false),
+    listItem.withDescription('Change your clothes','put on clothes for the day', 10, false),
+    listItem.withDescription('Brush Hair','Brush your hair', 10, false),
+    listItem.withDescription('Eat Lunch','Eat something in the middle of the day', 10, false), 
+    listItem.withDescription('Drink water','Drink a glass of water', 10, false),
+    listItem.withDescription('Eat Dinner','Eat something in the evening', 10, false),
+    listItem.withDescription('Brush Teeth','Brush your teeth in the evening', 10, false),
+    listItem.withDescription('Take a Shower','Take a shower, get clean!', 20, false),
+    ];
+  }
   return <listItem> [listItem.withDescription('','', 0, false)];
 }
   Future<Monster> _readMonsterFile(String filename) async {
@@ -78,6 +93,9 @@ class _stateYourList extends State<YourList>{
   if(text != ""){
     var decoded = jsonDecode(text);
   return Monster.fromJson(decoded);
+  }
+  if(healMonster){
+    return Monster(0, 100, "dragon.jpg");
   }
   return Monster(100, 100, "dragon.jpg");
 }
@@ -378,15 +396,29 @@ return listitem;
                       _writeFile(yourlistjson, widget.listfilename);
                       setState(() {
                         yourlist![index].done = value;
-                        if(value){
-                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()- yourlist![index].weight) as int?)!);
-                        }else{
-                          yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight) as int?)!);
+                        if(healMonster){
+                          if(value){
+                            yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight)));
+                          }else{
+                            yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()- yourlist![index].weight)));
+                          }
+                          if(yourMonster!.getCurrentHealth() >= yourMonster!.getHealth()){
+                            yourMonster?.setImageName("healedDragon.jpg");
+                          }else{
+                            yourMonster?.setImageName("dragon.jpg");
+                          }
                         }
-                        if(yourMonster!.getCurrentHealth() <= 0){
-                          yourMonster?.setImageName("defetedDragon.jpg");
-                        }else{
-                          yourMonster?.setImageName("dragon.jpg");
+                        else{
+                          if(value){
+                            yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()- yourlist![index].weight)));
+                          }else{
+                            yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight)));
+                          }
+                          if(yourMonster!.getCurrentHealth() <= 0){
+                            yourMonster?.setImageName("defetedDragon.jpg");
+                          }else{
+                            yourMonster?.setImageName("dragon.jpg");
+                          }
                         }
                       });
                       String yourdragonJson = "${yourMonster!.toJson()}";
@@ -471,7 +503,11 @@ return listitem;
                 ElevatedButton(
                   onPressed: (){
                     setState(() {
-                      yourMonster!.setCurrentHealth(yourMonster!.getHealth());
+                      if(healMonster){
+                        yourMonster!.setCurrentHealth(0);
+                      }else{
+                        yourMonster!.setCurrentHealth(yourMonster!.getHealth());
+                      }
                     });
                     String yourdragonJson = "${yourMonster!.toJson()}";
                     _writeFile(yourdragonJson, widget.monsterfilename);

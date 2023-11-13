@@ -442,7 +442,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     isLoaded=false;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => const  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', )),
+                  MaterialPageRoute(builder:(context) =>  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', healMonster: healMonster,)),
                   );
               },
                 ),
@@ -465,9 +465,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
                   child: const Text("Self Care"),
                   onPressed: (){
+                    
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) => const  YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',)),
+                  MaterialPageRoute(builder:(context) =>   YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: healMonster,)),
                   );
               }, 
                 ),
