@@ -11,7 +11,7 @@ bool isLoaded2 = false;
 int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
-_writeFile(String text, String filename) async {
+writeFile(String text, String filename) async {
   final directory = await getApplicationDocumentsDirectory();
   final path = directory.path;
 File file = File('$path/$filename');
@@ -65,7 +65,7 @@ class _stateYourList extends State<YourList>{
   List<listItem> items =decoded.map((listitemjson) => listItem.fromJson(listitemjson)).toList();
   return items;
   }
-  if(listname == "yourlist"){
+  if(listname == "selfcare"){
     return <listItem> [
     listItem.withDescription('Eat Breakfast','Eat something in the morning', 10, false),
     listItem.withDescription('Brush Teeth','Brush your teeth in the morning', 10, false),
@@ -94,7 +94,7 @@ class _stateYourList extends State<YourList>{
     var decoded = jsonDecode(text);
   return Monster.fromJson(decoded);
   }
-  if(healMonster){
+  if(widget.healMonster){
     return Monster(0, 100, "dragon.jpg");
   }
   return Monster(100, 100, "dragon.jpg");
@@ -137,11 +137,10 @@ setState(() {
             top: 10.0,
           ),
           title: Text(
-            "Edit $title",
+            " $title ",
             style: const TextStyle(fontSize: 24.0),
           ),
           content: SizedBox(
-            height: 400,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -255,11 +254,10 @@ return listitem;
             top: 10.0,
           ),
           title: const Text(
-            "Edit ",
+            "Remove ",
             style: TextStyle(fontSize: 24.0),
           ),
           content: SizedBox(
-            height: 400,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -328,7 +326,7 @@ return listitem;
             top: 10.0,
           ),
           title: const Text(
-            "Edit",
+            "",
             style: TextStyle(fontSize: 24.0),
           ),
           content: SizedBox(
@@ -393,10 +391,10 @@ return listitem;
                         }
                       }
                       yourlistjson+= "]}";
-                      _writeFile(yourlistjson, widget.listfilename);
+                      writeFile(yourlistjson, widget.listfilename);
                       setState(() {
                         yourlist![index].done = value;
-                        if(healMonster){
+                        if(widget.healMonster){
                           if(value){
                             yourMonster?.setCurrentHealth(((yourMonster!.getCurrentHealth()+ yourlist![index].weight)));
                           }else{
@@ -422,7 +420,7 @@ return listitem;
                         }
                       });
                       String yourdragonJson = "${yourMonster!.toJson()}";
-                      _writeFile(yourdragonJson, widget.monsterfilename);
+                      writeFile(yourdragonJson, widget.monsterfilename);
                     }),
                     Flexible(
                       child: Padding(
@@ -448,7 +446,7 @@ return listitem;
                       }
                     }
                     yourlistjson+= "]}";
-                    _writeFile(yourlistjson, widget.listfilename);
+                    writeFile(yourlistjson, widget.listfilename);
                     setState(() {
                       isLoaded2=false;
                     });
@@ -503,14 +501,14 @@ return listitem;
                 ElevatedButton(
                   onPressed: (){
                     setState(() {
-                      if(healMonster){
+                      if(widget.healMonster){
                         yourMonster!.setCurrentHealth(0);
                       }else{
                         yourMonster!.setCurrentHealth(yourMonster!.getHealth());
                       }
                     });
                     String yourdragonJson = "${yourMonster!.toJson()}";
-                    _writeFile(yourdragonJson, widget.monsterfilename);
+                    writeFile(yourdragonJson, widget.monsterfilename);
                   },
                   child: const Text("Reset Health")
                 )
@@ -530,7 +528,7 @@ return listitem;
                   }
                 }
                 yourlistjson+= "]}";
-                _writeFile(yourlistjson, widget.listfilename);
+                writeFile(yourlistjson, widget.listfilename);
                 setState(() {
                   isLoaded2=false;
                 });
@@ -558,7 +556,7 @@ return listitem;
                   }
                 }
                 yourlistjson+= "]}";
-                _writeFile(yourlistjson, widget.listfilename);
+                writeFile(yourlistjson, widget.listfilename);
                 setState(() {
                   isLoaded2=false;
                 });

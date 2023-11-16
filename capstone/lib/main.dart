@@ -1,8 +1,9 @@
-
+import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import 'package:capstone/listUI.dart';
 import 'package:flutter/material.dart';
+import 'package:capstone/settings.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'dart:async';
@@ -82,7 +83,7 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
 
   await _configureLocalTimeZone();
-
+getData();
   final NotificationAppLaunchDetails? notificationAppLaunchDetails = !kIsWeb &&
           Platform.isLinux
       ? null
@@ -190,29 +191,6 @@ var isLoaded = false;
 int rollDice( int largestNum){
   return Random().nextInt(largestNum);
 }
-_writeFile(String text, String filename) async {
-  final directory = await getApplicationDocumentsDirectory();
-  final path = directory.path;
-File file = File('$path/$filename');
-
-    bool bolean = await file.exists();
-    if (!bolean) {
-      file.create();
-      file.writeAsString(text);
-       // Close the file
-    }
-    // Open the file in write mode
-      IOSink sink = file.openWrite(mode: FileMode.writeOnly);
-      try {
-        // Write your data to the file
-        sink.write(text);
-        await sink.flush(); // Ensure data is written
-      } finally {
-        await sink.close();
-      }
-  //final File file = File('Assets\\files\\'+filename);
-  //await file.writeAsString(text);
-}
 
   tz.TZDateTime _nextInstanceOfTenAM() {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
@@ -239,15 +217,6 @@ State<MyApp> createState()=> _MyApp();
 
 class _MyApp extends State<MyApp>{
   // This widget is the root of your application.
-      /*static void changefont(){
-      setState((){
-      if(font == 'OpenDyslexic'){
-        font = 'Ariel';
-      }else{
-        font = 'OpenDyslexic';
-      }
-      });
-    }*/
   bool _notificationsEnabled = false;
 
   @override
@@ -355,13 +324,13 @@ class _MyApp extends State<MyApp>{
       Future<void> _scheduleDailyTenAMNotification() async {
     await flutterLocalNotificationsPlugin.zonedSchedule(
         0,
-        'daily scheduled notification title',
-        'daily scheduled notification body',
+        'Have you done a quest today?',
+        'Just a friendly reminder to get some work done if you can.',
         _nextInstanceOfTenAM(),
         const NotificationDetails(
           android: AndroidNotificationDetails('daily notification channel id',
-              'daily notification channel name',
-              channelDescription: 'daily notification description'),
+              'DiceProductivity',
+              channelDescription: 'reminder to do some quests'),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
@@ -398,6 +367,79 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   
+_NewListPopUp() async {
+    final TextEditingController  nameController = TextEditingController();
+
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(
+                20.0,
+              ),
+            ),
+          ),
+          contentPadding: const EdgeInsets.only(
+            top: 10.0,
+          ),
+          title: const Text(
+            "Make a new List ",
+            style: TextStyle(fontSize: 24.0),
+          ),
+          content: SizedBox(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      "Name of List",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter Name here ',
+                          labelText: 'Name'),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    height: 60,
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(nameController.text);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        // fixedSize: Size(250, 50),
+                      ),
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary
+                          ),
+                        "Add List",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      });
+}
+
   @override
   Widget build(BuildContext context) {
 
@@ -442,7 +484,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     isLoaded=false;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) =>  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', healMonster: healMonster,)),
+                  MaterialPageRoute(builder:(context) =>  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', healMonster: setting.healMonster,)),
                   );
               },
                 ),
@@ -468,7 +510,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder:(context) =>   YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: healMonster,)),
+                  MaterialPageRoute(builder:(context) =>   YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: setting.healMonster,)),
                   );
               }, 
                 ),
@@ -484,10 +526,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             FloatingActionButton(
               onPressed: (){
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder:(context) =>const NewList()),
-                  );
+              _NewListPopUp();
               },
               tooltip: 'opens make new list screen',
               child: const Icon(Icons.add),
@@ -503,17 +542,34 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+settings setting = settings.empty();
+Future<settings> _readFile(String filename)async {
+  String text ="";
+  try {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File("$path/$filename");
+    text = await file.readAsString();
+  } catch (e) {
+    print(e);
+  }
+  if(text != ""){
+  var decoded = jsonDecode(text);
+  return settings.fromJson(decoded);
+  }
 
+  return settings(false, false, true, false, true);
+}
+getData()async{
+    setting = await _readFile("settings.txt");
+  }
 
-bool healMonster = false;
-bool openDylexicfont = false;
-bool halloween = false;
-bool dark = false;
 class Settings extends StatefulWidget{
   const Settings({super.key});
   @override
   State<Settings> createState()=> _stateSettings();
 }
+
 // ignore: camel_case_types
 class _stateSettings extends State<Settings>{
 
@@ -521,9 +577,6 @@ class _stateSettings extends State<Settings>{
   @override
   Widget build(BuildContext context){
     
-    
-
-    void onChanged(bool boolean){}
     return Scaffold(
       appBar: AppBar(
         title: const Text("Settings"),
@@ -534,55 +587,73 @@ class _stateSettings extends State<Settings>{
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Switch(value: healMonster, onChanged: (bool boolean){
+              Switch(value: setting.healMonster, onChanged: (bool boolean){
                 if(boolean){}
                 else{}
                 setState(() {
-                  healMonster = boolean;
+                  setting.healMonster = boolean;
                 });
+                String settingsJson = "${setting.toJson()}";
+                writeFile(settingsJson, "settings.txt");
               }),
               const Text(
                 "Heal Monster",
-                
                 )
             ],
             ),
             Row(mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Switch(value: openDylexicfont, 
+              Switch(value: setting.openDyslexicfont, 
               onChanged: (bool boolean){
-
-                //_MyApp _myApp = new _MyApp();
-                //_myApp.build(context);
                 setState((){
-                  openDylexicfont = boolean;
+                  setting.openDyslexicfont = boolean;
                 });
+                String settingsJson = "${setting.toJson()}";
+                writeFile(settingsJson, "settings.txt");
               }),
               const Text("OpenDyslexic font")
             ],
             ),
             Row(mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Switch(value: halloween, onChanged: (bool boolean){
+              Switch(value: setting.halloweenMode, onChanged: (bool boolean){
                 if(boolean){}
                 else{}
                 setState(() {
-                  halloween = boolean;
+                  setting.halloweenMode = boolean;
                 });
+                String settingsJson = "${setting.toJson()}";
+                writeFile(settingsJson, "settings.txt");
               }),
               const Text("Halloween mode")
             ],
             ),
             Row(mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Switch(value: dark, onChanged: (bool boolean){
+              Switch(value: setting.darkMode, onChanged: (bool boolean){
                 if(boolean){}
                 else{}
                 setState(() {
-                  dark = boolean;
+                  setting.darkMode = boolean;
                 });
+                String settingsJson = "${setting.toJson()}";
+                writeFile(settingsJson, "settings.txt");
                 }),
               const Text("Dark mode")
+            ],
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Switch(value: setting.notification, onChanged: (bool boolean){
+                if(boolean){}
+                else{}
+                setState(() {
+                  setting.notification = boolean;
+                });
+                String settingsJson = "${setting.toJson()}";
+                writeFile(settingsJson, "settings.txt");
+                }),
+              const Text("Notifications")
             ],
             ),
           ],
@@ -590,19 +661,6 @@ class _stateSettings extends State<Settings>{
       ),
     );
     
-  }
-}
-
-class NewList extends StatelessWidget{
-  const NewList({super.key});
-  @override
-  Widget build(BuildContext context){
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Make a new List"),
-      ),
-      body: const Center(),
-    );
   }
 }
 
