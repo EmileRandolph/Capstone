@@ -37,12 +37,12 @@ File file = File('$path/$filename');
 class YourList extends StatefulWidget{
 @override
   State<YourList> createState()=> _stateYourList();  
-  const YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle, required this.healMonster});
+  YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle, required this.healMonster});
   final String listfilename;
   final String listname;
   final String monsterfilename;
   final String listTitle;
-  final bool healMonster;
+  bool healMonster;
   final bool isLoaded = false;
   
 

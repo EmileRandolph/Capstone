@@ -41,8 +41,7 @@ Future<List<YourList>> _readListFile(String filename) async{
       List<String> lines = file.readAsLinesSync();
       bool boolean = await file.exists();
   if(boolean){
-    List<YourList>? list = List.empty(growable: true);
-    for (var line in lines) {
+    List<YourList>? list = List.empty(growable: true);for (var line in lines) {
       stdout.writeln(line);
       list.add(YourList(listfilename: "$line.txt", listname: line, monsterfilename: "monster$line.txt", listTitle: line, healMonster: setting.healMonster));
     } 
@@ -415,7 +414,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
 _NewListPopUp() async {
     final TextEditingController  nameController = TextEditingController();
-
     return await showDialog(
       context: context,
       builder: (context) {
@@ -592,9 +590,11 @@ _DeleteListPopUp() async {
 
   @override
   Widget build(BuildContext context) {
+    _getData();
+    setState((){
+    });
     return Scaffold(
       appBar: AppBar(
-
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
@@ -637,6 +637,7 @@ _DeleteListPopUp() async {
                       child: Text(lists[index].listname),
                       onPressed: (){
                         isLoaded=false;
+                        lists[index].healMonster=setting.healMonster;
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder:(context) =>  lists[index]),
