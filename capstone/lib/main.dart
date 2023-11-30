@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:io';
 import 'package:capstone/listUI.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +14,53 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+
+Future<settings> _readSettingsFile(String filename)async {
+  String text ="";
+  try {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File("$path/$filename");
+    text = await file.readAsString();
+  } catch (e) {
+    print(e);
+  }
+  if(text != ""){
+  var decoded = jsonDecode(text);
+  return settings.fromJson(decoded);
+  }
+
+  return settings(false, false, true, false, true);
+}
+
+Future<List<YourList>> _readListFile(String filename) async{
+  try{
+        final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File("$path/$filename");
+      List<String> lines = file.readAsLinesSync();
+      bool boolean = await file.exists();
+  if(boolean){
+    List<YourList>? list = List.empty(growable: true);
+    for (var line in lines) {
+      stdout.writeln(line);
+      list.add(YourList(listfilename: "$line.txt", listname: line, monsterfilename: "monster$line.txt", listTitle: line, healMonster: setting.healMonster));
+    } 
+      return list;
+  }
+  }catch(e){
+    print(e);
+  }
+  return  [
+  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', healMonster: setting.healMonster,),
+  YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: setting.healMonster,)
+  ];
+}
+Future<num> _getData()async{
+    setting = await _readSettingsFile("settings.txt");
+    lists = await _readListFile("lists.txt");
+    return 0;
+  }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -83,7 +129,7 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
 
   await _configureLocalTimeZone();
-getData();
+await _getData();
   final NotificationAppLaunchDetails? notificationAppLaunchDetails = !kIsWeb &&
           Platform.isLinux
       ? null
@@ -188,9 +234,6 @@ getData();
   runApp(const MaterialApp(title:'DiceyProductivity',home:MyApp()));
 }
 var isLoaded = false;
-int rollDice( int largestNum){
-  return Random().nextInt(largestNum);
-}
 
   tz.TZDateTime _nextInstanceOfTenAM() {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
@@ -364,9 +407,12 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
+List<YourList> lists = [
+  YourList(listfilename: 'quests.txt', listname: 'quests', monsterfilename: 'questsmonster.txt', listTitle: 'Quests', healMonster: setting.healMonster,),
+  YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: setting.healMonster,)
+  ];
 class _MyHomePageState extends State<MyHomePage> {
-  
+
 _NewListPopUp() async {
     final TextEditingController  nameController = TextEditingController();
 
@@ -417,7 +463,16 @@ _NewListPopUp() async {
                     height: 60,
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        lists.add(YourList(listfilename: "${nameController.text}.txt", listname: nameController.text, monsterfilename: "monster${nameController.text}.txt", listTitle: nameController.text, healMonster: setting.healMonster));
+                        String text = "";
+                        for (YourList list in lists){
+                          text += "${list.listname}\n";
+                        }
+                        await writeFile(text, "lists.txt");
+                        lists = await _readListFile("lists.txt");
+                        setState(() {
+                        });
                         Navigator.of(context).pop(nameController.text);
                       },
                       style: ElevatedButton.styleFrom(
@@ -440,9 +495,103 @@ _NewListPopUp() async {
       });
 }
 
+_DeleteListPopUp() async {
+    final TextEditingController  nameController = TextEditingController();
+
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(
+                20.0,
+              ),
+            ),
+          ),
+          contentPadding: const EdgeInsets.only(
+            top: 10.0,
+          ),
+          title: const Text(
+            "Make a new List ",
+            style: TextStyle(fontSize: 24.0),
+          ),
+          content: SizedBox(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      "Name of List",
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter Name here ',
+                          labelText: 'Name'),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    height: 60,
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        for(int i =0; i < lists.length; i++){
+                          if(nameController.text==lists[i].listname){
+                            final directory = await getApplicationDocumentsDirectory();
+                            final path = directory.path;
+                            final file = File("$path/${lists[i].listfilename}");
+                            try{
+                              await file.delete();
+                            }catch(e){
+                              print(e);
+                            }
+                            
+                            lists.remove(lists[i]);
+                          }
+                        }
+                        String text = "";
+                        for (YourList list in lists){
+                          text += "${list.listname}\n";
+                        }
+                        await writeFile(text, "lists.txt");
+                        lists = await _readListFile("lists.txt");
+                        setState(() {
+                        });
+                        Navigator.of(context).pop(nameController.text);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        // fixedSize: Size(250, 50),
+                      ),
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary
+                          ),
+                        "Remove List",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      });
+}
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
 
@@ -471,98 +620,79 @@ _NewListPopUp() async {
                   ),
                 ],
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                ElevatedButton(
-                  style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
-                  child: const Text("Your list"),
-                  onPressed: (){
-                    isLoaded=false;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder:(context) =>  YourList(listfilename: 'yourlist.txt', listname: 'yourlist', monsterfilename: 'yourmonster.txt', listTitle: 'Your List', healMonster: setting.healMonster,)),
-                  );
-              },
+            Container(
+              child:
+            Expanded(child:
+            ListView.builder(
+              itemCount: lists.length,
+              itemBuilder: (context, index){
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    ElevatedButton(
+                      style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
+                      child: Text(lists[index].listname),
+                      onPressed: (){
+                        isLoaded=false;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder:(context) =>  lists[index]),
+                      );
+                  },
+                    ),
+                  ]
                 ),
-              ]
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  margin: const EdgeInsets.all(10),
-                )
-              ],
-            ),
-            Row(
-              
-              mainAxisAlignment: MainAxisAlignment.center,
-              
-              children: <Widget>[
-                ElevatedButton(
-                  style: ButtonStyle(backgroundColor: MaterialStatePropertyAll<Color>(Theme.of(context).colorScheme.inversePrimary)),
-                  child: const Text("Self Care"),
-                  onPressed: (){
-                    
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder:(context) =>   YourList(listfilename: 'selfcare.txt', listname: 'selfcare', monsterfilename: 'selfcaremonster.txt', listTitle: 'Self Care',healMonster: setting.healMonster,)),
-                  );
-              }, 
-                ),
-              ]
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  margin: const EdgeInsets.all(10),
-                )
-              ],
-            ),
-            FloatingActionButton(
-              onPressed: (){
-              _NewListPopUp();
+                  ]
+                );
               },
-              tooltip: 'opens make new list screen',
-              child: const Icon(Icons.add),
             ),
+            ),
+
+            ),
+            Row(
+              children: [
+                Padding(padding: const EdgeInsetsDirectional.all(10),
+                  child:FloatingActionButton(
+                onPressed: () async {
+                await _NewListPopUp();
+                },
+                heroTag: "AddList",
+                tooltip: 'opens make new list screen',
+                child: const Icon(Icons.add),
+                ),
+              ),
+              Padding(padding: const EdgeInsetsDirectional.all(10),
+                  child:FloatingActionButton(
+                onPressed: () async {
+                await _DeleteListPopUp();
+                setState(() {
+                  
+                });
+                },
+                heroTag: "RemoveList",
+                tooltip: 'opens delete a list screen',
+                child: const Icon(Icons.remove),
+                ),
+              )
+              ],
+            )
+            
               ],
             ),
             
-          ],
+          
         ),
-      ),
+      );
       
-    );
   }
 }
 
 settings setting = settings.empty();
-Future<settings> _readFile(String filename)async {
-  String text ="";
-  try {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    final file = File("$path/$filename");
-    text = await file.readAsString();
-  } catch (e) {
-    print(e);
-  }
-  if(text != ""){
-  var decoded = jsonDecode(text);
-  return settings.fromJson(decoded);
-  }
 
-  return settings(false, false, true, false, true);
-}
-getData()async{
-    setting = await _readFile("settings.txt");
-  }
+
 
 class Settings extends StatefulWidget{
   const Settings({super.key});

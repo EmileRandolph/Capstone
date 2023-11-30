@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 import 'package:capstone/list_item.dart';
-import 'package:capstone/main.dart';
 import 'package:capstone/monster.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -38,7 +37,7 @@ File file = File('$path/$filename');
 class YourList extends StatefulWidget{
 @override
   State<YourList> createState()=> _stateYourList();  
-  YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle, required this.healMonster});
+  const YourList({super.key, required this.listfilename, required this.listname, required this.monsterfilename, required this.listTitle, required this.healMonster});
   final String listfilename;
   final String listname;
   final String monsterfilename;
@@ -50,7 +49,7 @@ class YourList extends StatefulWidget{
 }
 // ignore: camel_case_types
 class _stateYourList extends State<YourList>{
-  Future<List<listItem>> _readFile(String filename,String listname) async {
+  Future<List<listItem>?> _readFile(String filename,String listname) async {
   String text ="";
   try {
     final directory = await getApplicationDocumentsDirectory();
@@ -77,6 +76,9 @@ class _stateYourList extends State<YourList>{
     listItem.withDescription('Brush Teeth','Brush your teeth in the evening', 10, false),
     listItem.withDescription('Take a Shower','Take a shower, get clean!', 20, false),
     ];
+  }
+  if(yourlist != null){
+    return yourlist;
   }
   return <listItem> [listItem.withDescription('','', 0, false)];
 }
@@ -207,7 +209,12 @@ setState(() {
                           title = nameController.text;
                         }
                         if(weightController.text != ""){
-                          weight = int.parse(weightController.text);
+                          try{
+                            weight = int.parse(weightController.text);
+                          }catch(e){
+                            weight = 10;
+                          }
+                          
                         }
                         if(descriptionController.text != ""){
                           description = descriptionController.text;
@@ -330,7 +337,6 @@ return listitem;
             style: TextStyle(fontSize: 24.0),
           ),
           content: SizedBox(
-            height: 400,
             child:  Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,8 +364,135 @@ return listitem;
     return Scaffold(
       appBar: AppBar(
         title:   Text(widget.listTitle),
-        
-      ),
+        actions: [
+                PopupMenuButton(
+                   // add icon, by default "3 dot" icon
+                   // icon: Icon(Icons.book)
+                  itemBuilder: (context){
+                    return [
+                            const PopupMenuItem<int>(
+                                value: 0,
+                                child: Text("Delete All Items"),
+                            ),
+
+                            const PopupMenuItem<int>(
+                                value: 1,
+                                child: Text("Delete Checked Items"),
+                            ),
+                            const PopupMenuItem<int>(
+                                value: 2,
+                                child: Text("Delete UnChecked Items"),
+                            ),
+
+                            const PopupMenuItem<int>(
+                                value: 3,
+                                child: Text("Uncheck All Items"),
+                            ),
+                            const PopupMenuItem<int>(
+                                value: 4,
+                                child: Text("Check All Items"),
+                            ),
+                        ];
+                  },
+                  onSelected:(value){
+                      switch(value){
+                        case 0:
+                        yourlist?.clear();
+                        String yourlistjson = "{\"${widget.listname}\":[";
+                        for (int i =0; i < yourlist!.length; i++){
+                          yourlistjson += yourlist![i].toJson().toString();
+                          if(i!=yourlist!.length-1){
+                            yourlistjson +=",";
+                          }
+                        }
+                        yourlistjson+= "]}";
+                      writeFile(yourlistjson, widget.listfilename);
+                        setState(() {
+                          
+                        });
+                        break;
+                        case 1:
+                        for(int i =yourlist!.length-1; i > -1; i--){
+                          if(yourlist![i].done){
+                            yourlist!.removeAt(i);
+                          }
+                        }
+                        String yourlistjson = "{\"${widget.listname}\":[";
+                      for (int i =0; i < yourlist!.length; i++){
+                        yourlistjson += yourlist![i].toJson().toString();
+                        if(i!=yourlist!.length-1){
+                          yourlistjson +=",";
+                        }
+                      }
+                      yourlistjson+= "]}";
+                      writeFile(yourlistjson, widget.listfilename);
+                        setState(() {
+                          
+                        });
+                        break;
+                        case 2:
+                        for(int i =yourlist!.length-1; i > -1; i--){
+                          if(!yourlist![i].done){
+                            yourlist!.removeAt(i);
+                          }
+                        }
+                        String yourlistjson = "{\"${widget.listname}\":[";
+                      for (int i =0; i < yourlist!.length; i++){
+                        yourlistjson += yourlist![i].toJson().toString();
+                        if(i!=yourlist!.length-1){
+                          yourlistjson +=",";
+                        }
+                      }
+                      yourlistjson+= "]}";
+                      writeFile(yourlistjson, widget.listfilename);
+                        setState(() {
+                          
+                        });
+                        break;
+                        case 3:
+                        for(int i =0; i < yourlist!.length; i++){
+                          if(yourlist![i].done){
+                            yourlist![i].done = false;
+                          }
+                        }
+                        String yourlistjson = "{\"${widget.listname}\":[";
+                      for (int i =0; i < yourlist!.length; i++){
+                        yourlistjson += yourlist![i].toJson().toString();
+                        if(i!=yourlist!.length-1){
+                          yourlistjson +=",";
+                        }
+                      }
+                      yourlistjson+= "]}";
+                      writeFile(yourlistjson, widget.listfilename);
+                        setState(() {
+                          
+                        });
+                        break;
+                        case 4:
+                        for(int i =0; i < yourlist!.length; i++){
+                          if(!yourlist![i].done){
+                            yourlist![i].done = true;
+                          }
+                        }
+                        String yourlistjson = "{\"${widget.listname}\":[";
+                      for (int i =0; i < yourlist!.length; i++){
+                        yourlistjson += yourlist![i].toJson().toString();
+                        if(i!=yourlist!.length-1){
+                          yourlistjson +=",";
+                        }
+                      }
+                      yourlistjson+= "]}";
+                      writeFile(yourlistjson, widget.listfilename);
+                        setState(() {
+                          
+                        });
+                        break;
+                      }
+                  }
+                  ),
+
+            ],
+        ),
       body: Visibility(
         visible: isLoaded2,
         replacement: const Center(
@@ -517,7 +650,8 @@ return listitem;
             Row(
               children:[
                 Padding(padding: const EdgeInsets.all(10),
-                child: FloatingActionButton(onPressed: () async {
+                child: FloatingActionButton(
+                  onPressed: () async {
                 listItem newlistItem = await showEditScreen("New quest","a quest to help defeat the dragon", 5);
                 yourlist?.add(newlistItem);
                 String yourlistjson = "{\"${widget.listname}\":[";
@@ -571,6 +705,7 @@ return listitem;
                 onPressed: (){
                   showDicePopUp(yourlist![rollDice(yourlist!.length)].getTitle());
                 }, 
+                
                 child: const Text("Randomly assign Quest")
                 ),
               ]
